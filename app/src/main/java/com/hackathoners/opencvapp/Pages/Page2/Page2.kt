@@ -1,7 +1,7 @@
 package com.hackathoners.opencvapp.Pages.Page2
 
 import android.annotation.SuppressLint
-import android.media.ImageReader
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -9,12 +9,19 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -34,22 +41,27 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
+import com.hackathoners.opencvapp.Extensions.flipBitmap
 import com.hackathoners.opencvapp.Pages.Page2.NoPermissionScreen.NoPermissionScreen
 import com.hackathoners.opencvapp.Shared.PerformOnLifecycle
+import com.hackathoners.opencvapp.rotateBitmap
 import com.hackathoners.opencvapp.ui.theme.LightBlue
 import com.hackathoners.opencvapp.ui.theme.MyApplicationTheme
 import com.hackathoners.opencvapp.ui.theme.Purple80
+import timber.log.Timber
 
 class Page2 : ComponentActivity() {
     private val viewModel by viewModels<Page2ViewModel>()
@@ -61,6 +73,8 @@ class Page2 : ComponentActivity() {
         setContent {
             Greeting2(this)
         }
+
+        Timber.i("on create")
     }
 }
 
@@ -118,7 +132,7 @@ fun Greeting2(
                         Box(
                             modifier = Modifier
                                 .fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                            contentAlignment = Alignment.TopCenter
                         ) {
                             val cameraPermissionState: PermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
@@ -131,19 +145,40 @@ fun Greeting2(
                                 if (!cameraPermissionState.status.isGranted) {
                                     NoPermissionScreen(cameraPermissionState::launchPermissionRequest)
                                 } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .width(250.dp)
+                                            .height(250.dp)
+                                            .border(
+                                                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                                                shape = MaterialTheme.shapes.medium
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Image(
+                                            bitmap = viewModel.image.asImageBitmap(),
+                                            contentDescription = "",
+                                            modifier = Modifier.fillMaxSize()
+                                                .padding(15.dp)
+                                        )
+                                    }
+
 //                                    Text("has permission: ${cameraPermissionState.status.isGranted}")
                                     // create box of 500 x 500 with background black
                                     Box(
                                         modifier = Modifier
-                                            .width(500.dp)
-                                            .height(500.dp)
+                                            .fillMaxWidth()
+                                            .height(200.dp)
                                             .background(color = Color.Black)
                                     ) {
+                                        // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
+                                        // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
                                         val cameraController: LifecycleCameraController = remember { LifecycleCameraController(activity) }
 
                                         AndroidView(
                                             modifier = Modifier
-                                                .fillMaxSize(),
+                                                .fillMaxWidth()
+                                                .height(200.dp),
                                             factory = { context ->
                                                 PreviewView(context).apply {
                                                     layoutParams = LinearLayout.LayoutParams(
@@ -154,6 +189,13 @@ fun Greeting2(
                                                     scaleType = PreviewView.ScaleType.FILL_START
                                                     cameraController.cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
                                                 }.also { previewView ->
+                                                    cameraController.setImageAnalysisAnalyzer(
+                                                        ContextCompat.getMainExecutor(context),
+                                                        TextRecognitionAnalyzer(onFrame = { bitmap ->
+                                                            viewModel.handleImage(bitmap)
+                                                        })
+                                                    )
+
                                                     previewView.controller = cameraController
                                                     cameraController.bindToLifecycle(lifecycleOwner)
                                                 }
@@ -167,6 +209,23 @@ fun Greeting2(
                 }
             )
         }
+    }
+}
+
+// https://www.youtube.com/watch?v=wCADCaeS8-A
+// https://github.com/YanneckReiss/JetpackComposeMLKitTutorial/blob/main/app/src/main/java/de/yanneckreiss/mlkittutorial/ui/camera/TextRecognitionAnalyzer.kt
+class TextRecognitionAnalyzer(
+    private val onFrame: (Bitmap) -> Unit
+) : ImageAnalysis.Analyzer {
+    override fun analyze(image: ImageProxy) {
+        val correctedBitmap: Bitmap = image
+            .toBitmap()
+            .rotateBitmap(image.imageInfo.rotationDegrees)
+            // rotate by 180 degrees
+            .rotateBitmap(180)
+            .flipBitmap(xFlip = true, yFlip = false)
+        onFrame(correctedBitmap)
+        image.close()
     }
 }
 
