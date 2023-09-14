@@ -30,7 +30,7 @@ class HomeViewModel : ViewModel() {
 
     // region Initialize
     @SuppressLint("StaticFieldLeak")
-    private lateinit var activity: Activity
+    private var activity: Activity? = null
     fun initialize(activity: Activity) {
         this.activity = activity
         val bitmap = BitmapFactory.decodeResource(activity.resources, R.drawable.cat)
@@ -65,7 +65,7 @@ class HomeViewModel : ViewModel() {
     fun handleImagePickerResult(uri: Uri?) {
         Timber.i("handleImagePickerResult: $uri")
         if (uri != null) {
-            val bitmap = MediaStore.Images.Media.getBitmap(activity.contentResolver, uri)
+            val bitmap = MediaStore.Images.Media.getBitmap(activity?.contentResolver, uri)
             image = invertBitmapColors(bitmap)
         }
     }
@@ -80,7 +80,7 @@ class HomeViewModel : ViewModel() {
         // go to page 2
         val intent = Intent(activity, Page2::class.java)
         intent.putExtra("value", "message from page 1")
-        activity.startActivity(intent)
+        activity?.startActivity(intent)
     }
 
 //    fun selectImage() {

@@ -21,7 +21,7 @@ class Page2ViewModel : ViewModel() {
 
     // region Initialize
     @SuppressLint("StaticFieldLeak")
-    private lateinit var activity: Activity
+    private var activity: Activity? = null
     fun initialize(activity: Activity) {
         this.activity = activity
     }
@@ -31,14 +31,8 @@ class Page2ViewModel : ViewModel() {
     fun onCreate() {
         Timber.i("onCreate")
 
-        val intent = activity.intent.extras
+        val intent = activity?.intent?.extras
         value = intent?.getString("value") ?: "no value"
-
-        if (OpenCVLoader.initDebug()) {
-            Timber.i("OpenCVLoader.initDebug() success")
-        } else {
-            Timber.i("OpenCVLoader.initDebug() fail")
-        }
     }
 
     fun onResume() {
@@ -55,5 +49,9 @@ class Page2ViewModel : ViewModel() {
         Timber.i("buttonAction1")
         count++
     }
+
+    /*fun handleFrame(frame: SomeType) {
+        Timber.i("hello world")
+    }*/
     // endregion
 }
