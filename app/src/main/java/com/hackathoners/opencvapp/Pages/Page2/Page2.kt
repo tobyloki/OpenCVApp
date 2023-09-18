@@ -9,7 +9,6 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ExperimentalGetImage
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import androidx.camera.view.LifecycleCameraController
@@ -18,13 +17,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -40,7 +41,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
@@ -84,11 +84,7 @@ fun Greeting2(
     activity: ComponentActivity = ComponentActivity(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     viewModel: Page2ViewModel = viewModel()
-) /*: ImageReader.OnImageAvailableListener*/ {
-    /*override fun onImageAvailable(reader: ImageReader) {
-        viewModel.handleFrame(reader.someFrame)
-        reader.acquireLatestImage().close()
-    }*/
+) {
 
     PerformOnLifecycle(
         lifecycleOwner = lifecycleOwner,
@@ -123,84 +119,129 @@ fun Greeting2(
                     )
                 },
                 content = {
-                    Column(
-                        modifier = Modifier
-                            .padding(it)
-                            .background(LightBlue)
-                            .padding(top = 20.dp, start = 20.dp, end = 20.dp)
-                    ) {
+                    val cameraPermissionState: PermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
+
+                    if (!cameraPermissionState.status.isGranted) {
+                        NoPermissionScreen(cameraPermissionState::launchPermissionRequest)
+                    } else {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize(),
-                            contentAlignment = Alignment.TopCenter
+                                .padding(it)
                         ) {
-                            val cameraPermissionState: PermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
+                            // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
+                            // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
+                            val cameraController: LifecycleCameraController =
+                                remember { LifecycleCameraController(activity) }
 
-                            Column {
-                                Text(
-                                    text = "AI Gesture Art",
-                                    fontSize = 30.sp
-                                )
-
-                                if (!cameraPermissionState.status.isGranted) {
-                                    NoPermissionScreen(cameraPermissionState::launchPermissionRequest)
-                                } else {
-                                    Box(
-                                        modifier = Modifier
-                                            .width(250.dp)
-                                            .height(250.dp)
-                                            .border(
-                                                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                                                shape = MaterialTheme.shapes.medium
-                                            ),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Image(
-                                            bitmap = viewModel.image.asImageBitmap(),
-                                            contentDescription = "",
-                                            modifier = Modifier.fillMaxSize()
-                                                .padding(15.dp)
+                            AndroidView(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                factory = { context ->
+                                    PreviewView(context).apply {
+                                        layoutParams = LinearLayout.LayoutParams(
+                                            ViewGroup.LayoutParams.MATCH_PARENT,
+                                            ViewGroup.LayoutParams.MATCH_PARENT
                                         )
-                                    }
+                                        setBackgroundColor(android.graphics.Color.BLACK)
+                                        implementationMode =
+                                            PreviewView.ImplementationMode.COMPATIBLE
+                                        scaleType = PreviewView.ScaleType.FILL_START
+                                        cameraController.cameraSelector =
+                                            CameraSelector.DEFAULT_FRONT_CAMERA
+                                    }.also { previewView ->
+                                        cameraController.setImageAnalysisAnalyzer(
+                                            ContextCompat.getMainExecutor(context),
+                                            TextRecognitionAnalyzer(onFrame = { bitmap ->
+                                                viewModel.handleImage(bitmap)
+                                            })
+                                        )
 
-//                                    Text("has permission: ${cameraPermissionState.status.isGranted}")
-                                    // create box of 500 x 500 with background black
-                                    Box(
+                                        previewView.controller = cameraController
+                                        cameraController.bindToLifecycle(lifecycleOwner)
+                                    }
+                                }
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(LightBlue)
+                                    .verticalScroll(rememberScrollState())
+                                    .padding(start = 20.dp, end = 20.dp),
+                                contentAlignment = Alignment.TopCenter
+                            ) {
+                                Column {
+                                    Column(
+                                        // set spacing between items
+                                        verticalArrangement = Arrangement.spacedBy(10.dp),
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height(200.dp)
-                                            .background(color = Color.Black)
+                                            .padding(top = 20.dp, bottom = 20.dp)
                                     ) {
-                                        // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
-                                        // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
-                                        val cameraController: LifecycleCameraController = remember { LifecycleCameraController(activity) }
+                                        Text(
+                                            text = "AI Gesture Art",
+                                            fontSize = 30.sp
+                                        )
 
-                                        AndroidView(
+                                        Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .height(200.dp),
-                                            factory = { context ->
-                                                PreviewView(context).apply {
-                                                    layoutParams = LinearLayout.LayoutParams(
-                                                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-                                                    )
-                                                    setBackgroundColor(android.graphics.Color.BLACK)
-                                                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                                                    scaleType = PreviewView.ScaleType.FILL_START
-                                                    cameraController.cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-                                                }.also { previewView ->
-                                                    cameraController.setImageAnalysisAnalyzer(
-                                                        ContextCompat.getMainExecutor(context),
-                                                        TextRecognitionAnalyzer(onFrame = { bitmap ->
-                                                            viewModel.handleImage(bitmap)
-                                                        })
-                                                    )
+                                                .height(300.dp)
+                                                .border(
+                                                    border = BorderStroke(
+                                                        2.dp,
+                                                        MaterialTheme.colorScheme.primary
+                                                    ),
+                                                    shape = MaterialTheme.shapes.medium
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                bitmap = viewModel.originalImage.asImageBitmap(),
+                                                contentDescription = "",
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
 
-                                                    previewView.controller = cameraController
-                                                    cameraController.bindToLifecycle(lifecycleOwner)
-                                                }
-                                            }
-                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(300.dp)
+                                                .border(
+                                                    border = BorderStroke(
+                                                        2.dp,
+                                                        MaterialTheme.colorScheme.primary
+                                                    ),
+                                                    shape = MaterialTheme.shapes.medium
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                bitmap = viewModel.thresholdImage.asImageBitmap(),
+                                                contentDescription = "",
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(300.dp)
+                                                .border(
+                                                    border = BorderStroke(
+                                                        2.dp,
+                                                        MaterialTheme.colorScheme.primary
+                                                    ),
+                                                    shape = MaterialTheme.shapes.medium
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                bitmap = viewModel.outputImage.asImageBitmap(),
+                                                contentDescription = "",
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -220,9 +261,8 @@ class TextRecognitionAnalyzer(
     override fun analyze(image: ImageProxy) {
         val correctedBitmap: Bitmap = image
             .toBitmap()
-            .rotateBitmap(image.imageInfo.rotationDegrees)
-            // rotate by 180 degrees
-            .rotateBitmap(180)
+//            .rotateBitmap(image.imageInfo.rotationDegrees)
+            .rotateBitmap(-90)
             .flipBitmap(xFlip = true, yFlip = false)
         onFrame(correctedBitmap)
         image.close()
