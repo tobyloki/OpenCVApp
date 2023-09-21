@@ -83,4 +83,7 @@ dependencies {
     // ACCOMPANIST
     def accompanist_version = '0.32.0'
     implementation "com.google.accompanist:accompanist-permissions:$accompanist_version"
+
+    // exoplayer
+    implementation 'com.google.android.exoplayer:exoplayer:2.16.1'
 }

@@ -1,7 +1,9 @@
 package com.hackathoners.opencvapp.Pages.Page2
 
 import android.annotation.SuppressLint
+import android.content.res.Resources
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -62,6 +64,26 @@ import com.hackathoners.opencvapp.ui.theme.LightBlue
 import com.hackathoners.opencvapp.ui.theme.MyApplicationTheme
 import com.hackathoners.opencvapp.ui.theme.Purple80
 import timber.log.Timber
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.dp
+import com.google.accompanist.permissions.rememberPermissionState
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import android.widget.VideoView
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.remember
+import androidx.compose.ui.viewinterop.AndroidView
+import com.google.android.exoplayer2.ExoPlayer
+import com.google.android.exoplayer2.MediaItem
+import com.google.android.exoplayer2.ui.StyledPlayerView
 
 class Page2 : ComponentActivity() {
     private val viewModel by viewModels<Page2ViewModel>()
@@ -78,6 +100,7 @@ class Page2 : ComponentActivity() {
     }
 }
 
+@SuppressLint("DiscouragedApi", "OpaqueUnitKey")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun Greeting2(
@@ -150,7 +173,10 @@ fun Greeting2(
                                             .width(250.dp)
                                             .height(250.dp)
                                             .border(
-                                                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                                                border = BorderStroke(
+                                                    2.dp,
+                                                    MaterialTheme.colorScheme.primary
+                                                ),
                                                 shape = MaterialTheme.shapes.medium
                                             ),
                                         contentAlignment = Alignment.Center
@@ -158,49 +184,71 @@ fun Greeting2(
                                         Image(
                                             bitmap = viewModel.image.asImageBitmap(),
                                             contentDescription = "",
-                                            modifier = Modifier.fillMaxSize()
+                                            modifier = Modifier
+                                                .fillMaxSize()
                                                 .padding(15.dp)
                                         )
                                     }
 
+//                                    // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
+//                                    // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
+//                                    val cameraController: LifecycleCameraController = remember { LifecycleCameraController(activity) }
+//
+//                                    AndroidView(
+//                                        modifier = Modifier
+//                                            .fillMaxWidth()
+//                                            .height(200.dp),
+//                                        factory = { context ->
+//                                            PreviewView(context).apply {
+//                                                layoutParams = LinearLayout.LayoutParams(
+//                                                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+//                                                )
+//                                                setBackgroundColor(android.graphics.Color.BLACK)
+//                                                implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+//                                                scaleType = PreviewView.ScaleType.FILL_START
+//                                                cameraController.cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+//                                            }.also { previewView ->
+//                                                cameraController.setImageAnalysisAnalyzer(
+//                                                    ContextCompat.getMainExecutor(context),
+//                                                    TextRecognitionAnalyzer(onFrame = { bitmap ->
+//                                                        viewModel.handleImage(bitmap)
+//                                                    })
+//                                                )
+//
+//                                                previewView.controller = cameraController
+//                                                cameraController.bindToLifecycle(lifecycleOwner)
+//                                            }
+//                                        }
+//                                    )
+
 //                                    Text("has permission: ${cameraPermissionState.status.isGranted}")
                                     // create box of 500 x 500 with background black
+
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .height(200.dp)
                                             .background(color = Color.Black)
                                     ) {
-                                        // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
-                                        // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
-                                        val cameraController: LifecycleCameraController = remember { LifecycleCameraController(activity) }
 
-                                        AndroidView(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(200.dp),
-                                            factory = { context ->
-                                                PreviewView(context).apply {
-                                                    layoutParams = LinearLayout.LayoutParams(
-                                                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
-                                                    )
-                                                    setBackgroundColor(android.graphics.Color.BLACK)
-                                                    implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                                                    scaleType = PreviewView.ScaleType.FILL_START
-                                                    cameraController.cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
-                                                }.also { previewView ->
-                                                    cameraController.setImageAnalysisAnalyzer(
-                                                        ContextCompat.getMainExecutor(context),
-                                                        TextRecognitionAnalyzer(onFrame = { bitmap ->
-                                                            viewModel.handleImage(bitmap)
-                                                        })
-                                                    )
+                                        val context = LocalContext.current
+                                        val resources: Resources = context.resources
+                                        val exoPlayer = ExoPlayer.Builder(context).build()
 
-                                                    previewView.controller = cameraController
-                                                    cameraController.bindToLifecycle(lifecycleOwner)
-                                                }
+                                        val resId = resources.getIdentifier("handw", "raw", context.packageName)
+                                        val mediaItem = MediaItem.fromUri(Uri.parse("android.resource://${context.packageName}/$resId"))
+                                        exoPlayer.setMediaItem(mediaItem)
+
+                                        val playerView = StyledPlayerView(context)
+                                        playerView.player = exoPlayer
+
+                                        DisposableEffect(AndroidView(factory = {playerView})){
+                                            exoPlayer.prepare()
+                                            exoPlayer.playWhenReady = true
+                                            onDispose {
+                                                exoPlayer.release()
                                             }
-                                        )
+                                        }
                                     }
                                 }
                             }
@@ -220,9 +268,8 @@ class TextRecognitionAnalyzer(
     override fun analyze(image: ImageProxy) {
         val correctedBitmap: Bitmap = image
             .toBitmap()
-            .rotateBitmap(image.imageInfo.rotationDegrees)
-            // rotate by 180 degrees
-            .rotateBitmap(180)
+//            .rotateBitmap(image.imageInfo.rotationDegrees)
+            .rotateBitmap(-90)
             .flipBitmap(xFlip = true, yFlip = false)
         onFrame(correctedBitmap)
         image.close()
