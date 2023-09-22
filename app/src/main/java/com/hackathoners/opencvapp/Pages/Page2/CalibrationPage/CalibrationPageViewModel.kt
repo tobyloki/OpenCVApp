@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -25,10 +26,14 @@ class CalibrationPageViewModel : ViewModel() {
     var outputImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var lowerSkin by mutableStateOf<Scalar>(Scalar(0.0, 50.0, 50.0))
     var upperSkin by mutableStateOf<Scalar>(Scalar(200.0, 240.0, 240.0))
+    var thresh by mutableDoubleStateOf(0.0)
+    var maxval by mutableDoubleStateOf(255.0)
 
     // Default skin-tone threshold bounds
     val defaultLowerSkin = Scalar(0.0, 50.0, 50.0)
     val defaultUpperSkin = Scalar(200.0, 240.0, 240.0)
+    val defaultThresh = 200.0
+    val defaultMaxval = 255.0
     // For the HSV lower values
     val defaultSlider1Values = mutableListOf(0f, 50f, 50f)
     // For the HSV upper values
@@ -70,6 +75,8 @@ class CalibrationPageViewModel : ViewModel() {
 
 //        val intent = activity?.intent?.extras
 //        value = intent?.getString("value") ?: "no value"
+
+        loadSkinValues()
     }
 
     fun onResume() {
@@ -98,6 +105,53 @@ class CalibrationPageViewModel : ViewModel() {
     fun setUpperSkinValues() {
         upperSkin = Scalar(slider4Value.toDouble(), slider5Value.toDouble(), slider6Value.toDouble())
     }
+
+    fun setSkinValues() {
+        setLowerSkinValues()
+        setUpperSkinValues()
+        thresh = slider7Value.toDouble()
+        maxval = slider8Value.toDouble()
+    }
+
+    fun loadSkinValues() {
+        // get from shared preferences
+        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
+
+        // load lower hsv values
+        val lowhue = sharedPref.getInt("lower-skin-h", 0)
+        val lowsat = sharedPref.getInt("lower-skin-s", 0)
+        val lowvalue = sharedPref.getInt("lower-skin-v", 0)
+        lowerSkin = Scalar(lowhue.toDouble(), lowsat.toDouble(), lowvalue.toDouble())
+
+        // load upper hsv values
+        val highhue = sharedPref.getInt("upper-skin-h", 0)
+        val highsat = sharedPref.getInt("upper-skin-s", 0)
+        val highvalue = sharedPref.getInt("upper-skin-v", 0)
+        upperSkin = Scalar(highhue.toDouble(), lowsat.toDouble(), lowvalue.toDouble())
+
+        // load thresh & maxval
+        thresh = sharedPref.getInt("skin-thresh", 0).toDouble()
+        maxval = sharedPref.getInt("skin-maxval", 0).toDouble()
+    }
+
+    fun saveSkinValues() {
+        // Save lower skin values to shared preferences memory
+        // save to shared preferences
+        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
+        with (sharedPref.edit()) {
+            putInt("lower-skin-h", slider1Value.toInt())
+            putInt("lower-skin-s", slider2Value.toInt())
+            putInt("lower-skin-v", slider3Value.toInt())
+            putInt("upper-skin-h", slider4Value.toInt())
+            putInt("upper-skin-s", slider5Value.toInt())
+            putInt("upper-skin-v", slider6Value.toInt())
+            putInt("skin-thresh", slider7Value.toInt())
+            putInt("skin-maxval", slider8Value.toInt())
+            apply()
+        }
+    }
+
+
 
     fun resetToDefault() {
         lowerSkin = defaultLowerSkin

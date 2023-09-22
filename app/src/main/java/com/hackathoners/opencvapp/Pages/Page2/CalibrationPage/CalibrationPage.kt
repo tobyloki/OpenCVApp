@@ -214,9 +214,7 @@ fun Greeting2(
                                         ) {
                                             Button(
                                                 onClick = {
-                                                    viewModel.setLowerSkinValues()
-                                                    viewModel.setUpperSkinValues()
-                                                    //TODO: Handle setting thresh and maxval
+                                                    viewModel.setSkinValues()
                                                 }
                                             ) {
                                                 Text(text = "Set")
@@ -228,24 +226,80 @@ fun Greeting2(
 
                                         // Sliders for HSV skin-tone (Lower)
                                         Text(text = "Lower Skin HSV", fontSize = 16.sp)
-                                        Slider(value = viewModel.slider1Value, onValueChange = { viewModel.slider1Value = it }, valueRange = 0f..255f)
-                                        Slider(value = viewModel.slider2Value, onValueChange = { viewModel.slider2Value = it }, valueRange = 0f..255f)
-                                        Slider(value = viewModel.slider3Value, onValueChange = { viewModel.slider3Value = it }, valueRange = 0f..255f)
+                                        Slider(
+                                            value = viewModel.slider1Value,
+                                            onValueChange = {
+                                                viewModel.slider1Value = it
+                                                viewModel.setSkinValues()
+                                            },
+                                            valueRange = 0f..255f
+                                        )
+                                        Slider(
+                                            value = viewModel.slider2Value,
+                                            onValueChange = {
+                                                viewModel.slider2Value = it
+                                                viewModel.setSkinValues()
+                                            },
+                                            valueRange = 0f..255f
+                                        )
+                                        Slider(
+                                            value = viewModel.slider3Value,
+                                            onValueChange = {
+                                                viewModel.slider3Value = it
+                                                viewModel.setSkinValues()
+                                            },
+                                            valueRange = 0f..255f
+                                        )
 
                                         Spacer(modifier = Modifier.height(16.dp))
 
                                         // Sliders for HSV skin-tone (Upper)
                                         Text(text = "Upper Skin HSV", fontSize = 16.sp)
-                                        Slider(value = viewModel.slider4Value, onValueChange = { viewModel.slider4Value = it }, valueRange = 0f..255f)
-                                        Slider(value = viewModel.slider5Value, onValueChange = { viewModel.slider5Value = it }, valueRange = 0f..255f)
-                                        Slider(value = viewModel.slider6Value, onValueChange = { viewModel.slider6Value = it }, valueRange = 0f..255f)
+                                        Slider(
+                                            value = viewModel.slider4Value,
+                                            onValueChange = {
+                                                viewModel.slider4Value = it
+                                                viewModel.setSkinValues()
+                                            },
+                                            valueRange = 0f..255f
+                                        )
+                                        Slider(
+                                            value = viewModel.slider5Value,
+                                            onValueChange = {
+                                                viewModel.slider5Value = it
+                                                viewModel.setSkinValues()
+                                            },
+                                            valueRange = 0f..255f
+                                        )
+                                        Slider(
+                                            value = viewModel.slider6Value,
+                                            onValueChange = {
+                                                viewModel.slider6Value = it
+                                                viewModel.setSkinValues()
+                                            },
+                                            valueRange = 0f..255f
+                                        )
 
                                         Spacer(modifier = Modifier.height(16.dp))
 
                                         // Sliders for thresh and maxval
                                         Text(text = "Thresh & MaxVal", fontSize = 16.sp)
-                                        Slider(value = viewModel.slider7Value, onValueChange = { viewModel.slider7Value = it }, valueRange = 0f..255f)
-                                        Slider(value = viewModel.slider8Value, onValueChange = { viewModel.slider8Value = it }, valueRange = 0f..255f)
+                                        Slider(
+                                            value = viewModel.slider7Value,
+                                            onValueChange = {
+                                                viewModel.slider7Value = it
+                                                viewModel.setSkinValues()
+                                            },
+                                            valueRange = 0f..255f
+                                        )
+                                        Slider(
+                                            value = viewModel.slider8Value,
+                                            onValueChange = {
+                                                viewModel.slider8Value = it
+                                                viewModel.setSkinValues()
+                                            },
+                                            valueRange = 0f..255f
+                                        )
 
 
 
