@@ -96,7 +96,6 @@ class HomeViewModel : ViewModel() {
     }
 
     fun goToCalibrationPage() {
-        // go to calibration page
         val intent = Intent(activity, CalibrationPage::class.java)
         activity?.startActivity(intent)
     }

@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.graphics.Bitmap
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -28,23 +29,26 @@ class CalibrationPageViewModel : ViewModel() {
     // Default skin-tone threshold bounds
     val defaultLowerSkin = Scalar(0.0, 50.0, 50.0)
     val defaultUpperSkin = Scalar(200.0, 240.0, 240.0)
-    val defaultThresh = 200.0
-    val defaultMaxval = 255.0
+    // For the HSV lower values
+    val defaultSlider1Values = mutableListOf(0f, 50f, 50f)
+    // For the HSV upper values
+    val defaultSlider2Values = mutableListOf(200f, 240f, 240f)
+    // For defaultThresh, defaultMaxval
+    val defaultSlider3Values = mutableListOf(200f, 255f)
 
     // For the HSV lower values
-    var slider1Value by mutableStateOf(0f)
-    var slider2Value by mutableStateOf(50f)
-    var slider3Value by mutableStateOf(50f)
+    var slider1Value by mutableFloatStateOf(defaultSlider1Values[0])
+    var slider2Value by mutableFloatStateOf(defaultSlider1Values[1])
+    var slider3Value by mutableFloatStateOf(defaultSlider1Values[2])
 
     // For the HSV upper values
-    var slider4Value by mutableStateOf(200f)
-    var slider5Value by mutableStateOf(240f)
-    var slider6Value by mutableStateOf(240f)
+    var slider4Value by mutableFloatStateOf(defaultSlider2Values[0])
+    var slider5Value by mutableFloatStateOf(defaultSlider2Values[1])
+    var slider6Value by mutableFloatStateOf(defaultSlider2Values[2])
 
-    // For thresh and maxval
-    var slider7Value by mutableStateOf(200f)
-    var slider8Value by mutableStateOf(255f)
-
+    // For Thresh and Maxval
+    var slider7Value by mutableFloatStateOf(defaultSlider3Values[0])
+    var slider8Value by mutableFloatStateOf(defaultSlider3Values[1])
 
 //    private val viewModelJob = Job()
 //    private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
@@ -98,7 +102,17 @@ class CalibrationPageViewModel : ViewModel() {
     fun resetToDefault() {
         lowerSkin = defaultLowerSkin
         upperSkin = defaultUpperSkin
-        //TODO: Reset the slider values as well
+
+        slider1Value = defaultSlider1Values[0]
+        slider2Value = defaultSlider1Values[1]
+        slider3Value = defaultSlider1Values[2]
+
+        slider4Value = defaultSlider2Values[0]
+        slider5Value = defaultSlider2Values[1]
+        slider6Value = defaultSlider2Values[2]
+
+        slider7Value = defaultSlider3Values[0]
+        slider8Value = defaultSlider3Values[1]
     }
 
     // endregion

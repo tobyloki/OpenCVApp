@@ -88,6 +88,7 @@ fun Greeting(
                         colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Purple80),
                         actions = {
                             OverflowMenu { dismissMenu ->
+
                                 DropdownMenuItem(
                                     onClick = {
                                         viewModel.handleBtnClick()
@@ -127,6 +128,20 @@ fun Greeting(
                                         )
                                     }
                                 )
+
+                                DropdownMenuItem(
+                                    onClick = {
+                                        viewModel.goToCalibrationPage()
+                                        dismissMenu()
+                                    },
+                                    text = { Text(text = "Go to calibration page") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowForward,
+                                            contentDescription = ""
+                                        )
+                                    }
+                                )
                             }
                         }
                     )
@@ -149,6 +164,11 @@ fun Greeting(
                             onClick = viewModel::goToPage2
                         ) {
                             Text(text = "Go to page 2")
+                        }
+                        Button(
+                            onClick = viewModel::goToCalibrationPage
+                        ) {
+                            Text(text = "Go to Calibration page")
                         }
                         Box(
                             modifier = Modifier
