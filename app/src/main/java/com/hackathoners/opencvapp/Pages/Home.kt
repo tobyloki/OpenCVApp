@@ -114,6 +114,19 @@ fun Greeting(
                                         )
                                     }
                                 )
+                                DropdownMenuItem(
+                                    onClick = {
+                                        viewModel.goToCalibrationPage()
+                                        dismissMenu()
+                                    },
+                                    text = { Text(text = "Go to calibration page") },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.ArrowForward,
+                                            contentDescription = ""
+                                        )
+                                    }
+                                )
                             }
                         }
                     )

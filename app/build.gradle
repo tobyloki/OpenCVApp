@@ -85,5 +85,5 @@ dependencies {
     implementation "com.google.accompanist:accompanist-permissions:$accompanist_version"
 
     // exoplayer
-    implementation 'com.google.android.exoplayer:exoplayer:2.16.1'
+    implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
 }

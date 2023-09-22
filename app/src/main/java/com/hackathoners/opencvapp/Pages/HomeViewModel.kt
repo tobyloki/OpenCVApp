@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.hackathoners.opencvapp.Pages.Page2.CalibrationPage.CalibrationPage
 import com.hackathoners.opencvapp.Pages.Page2.Page2
 import com.hackathoners.opencvapp.R
 import kotlinx.coroutines.CoroutineScope
@@ -41,6 +42,10 @@ class HomeViewModel : ViewModel() {
     // region Lifecycle
     fun onCreate() {
         Timber.i("onCreate")
+
+        // get from shared preferences
+        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
+        count = sharedPref.getInt("count", 0)
     }
 
     fun onResume() {
@@ -74,12 +79,25 @@ class HomeViewModel : ViewModel() {
     fun handleBtnClick() {
         Timber.i("increment count")
         count++
+
+        // save to shared preferences
+        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
+        with (sharedPref.edit()) {
+            putInt("count", count)
+            apply()
+        }
     }
 
     fun goToPage2() {
         // go to page 2
         val intent = Intent(activity, Page2::class.java)
         intent.putExtra("value", "message from page 1")
+        activity?.startActivity(intent)
+    }
+
+    fun goToCalibrationPage() {
+        // go to calibration page
+        val intent = Intent(activity, CalibrationPage::class.java)
         activity?.startActivity(intent)
     }
 

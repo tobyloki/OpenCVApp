@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">OpenCVApp</string>
     <string name="title_activity_page2">Page2</string>
+    <string name="title_activity_calibration">CalibrationPage</string>
 </resources>

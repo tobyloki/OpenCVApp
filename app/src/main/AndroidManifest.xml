@@ -28,6 +28,11 @@
             android:label="@string/title_activity_page2"
             android:theme="@style/Theme.MyApplication" />
         <activity
+            android:name=".Pages.Page2.CalibrationPage.CalibrationPage"
+            android:exported="false"
+            android:label="@string/title_activity_calibration"
+            android:theme="@style/Theme.MyApplication" />
+        <activity
             android:name=".Pages.MainActivity"
             android:exported="true"
             android:label="@string/app_name"

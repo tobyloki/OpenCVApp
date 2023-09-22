@@ -1,4 +1,4 @@
-package com.hackathoners.opencvapp.Pages.Page2.NoPermissionScreen
+package com.hackathoners.opencvapp.Pages.Page2.NoCameraPermissionScreen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -14,10 +14,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
-fun NoPermissionScreen(
+fun NoCameraPermissionScreen(
     onRequestPermission: () -> Unit
 ) {
-
     NoPermissionContent(
         onRequestPermission = onRequestPermission
     )
