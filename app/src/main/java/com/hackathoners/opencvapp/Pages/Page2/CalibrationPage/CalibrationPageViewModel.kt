@@ -132,6 +132,17 @@ class CalibrationPageViewModel : ViewModel() {
         // load thresh & maxval
         thresh = sharedPref.getInt("skin-thresh", 0).toDouble()
         maxval = sharedPref.getInt("skin-maxval", 0).toDouble()
+
+        // Set slider positions to loaded values
+        slider1Value = lowhue.toFloat()
+        slider2Value = lowsat.toFloat()
+        slider3Value = lowvalue.toFloat()
+        slider4Value = highhue.toFloat()
+        slider5Value = highsat.toFloat()
+        slider6Value = highvalue.toFloat()
+        slider7Value = thresh.toFloat()
+        slider8Value = maxval.toFloat()
+
     }
 
     fun saveSkinValues() {
@@ -156,6 +167,8 @@ class CalibrationPageViewModel : ViewModel() {
     fun resetToDefault() {
         lowerSkin = defaultLowerSkin
         upperSkin = defaultUpperSkin
+        thresh = defaultThresh
+        maxval = defaultMaxval
 
         slider1Value = defaultSlider1Values[0]
         slider2Value = defaultSlider1Values[1]

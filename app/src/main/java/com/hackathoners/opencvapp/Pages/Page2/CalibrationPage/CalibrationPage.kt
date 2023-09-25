@@ -215,6 +215,7 @@ fun Greeting2(
                                             Button(
                                                 onClick = {
                                                     viewModel.setSkinValues()
+                                                    viewModel.saveSkinValues()
                                                 }
                                             ) {
                                                 Text(text = "Set")
