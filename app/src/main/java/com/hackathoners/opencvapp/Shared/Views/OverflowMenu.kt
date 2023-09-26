@@ -1,4 +1,4 @@
-package com.hackathoners.opencvapp.Shared
+package com.hackathoners.opencvapp.Shared.Views
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material.icons.Icons

@@ -1,4 +1,4 @@
-package com.hackathoners.opencvapp.ui.theme
+package com.hackathoners.opencvapp.Shared.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

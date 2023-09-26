@@ -1,4 +1,4 @@
-package com.hackathoners.opencvapp.Shared
+package com.hackathoners.opencvapp.Shared.Helpers
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect

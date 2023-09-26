@@ -1,4 +1,4 @@
-package com.hackathoners.opencvapp.Pages.Page2.NoCameraPermissionScreen
+package com.hackathoners.opencvapp.Pages.Draw.NoCameraPermissionScreen
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

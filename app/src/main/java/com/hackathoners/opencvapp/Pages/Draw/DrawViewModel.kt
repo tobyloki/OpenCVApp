@@ -1,8 +1,7 @@
-package com.hackathoners.opencvapp.Pages.Page2
+package com.hackathoners.opencvapp.Pages.Draw
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -30,7 +29,7 @@ enum class Mode {
     VIDEO
 }
 
-class Page2ViewModel : ViewModel() {
+class DrawViewModel : ViewModel() {
     var originalImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var outputImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
@@ -92,15 +91,24 @@ class Page2ViewModel : ViewModel() {
 
     // region Business logic
     private fun loadCalibrationValues() {
-        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
-        lowerSkinH = sharedPref.getFloat("lowerSkinH", 0f)
-        lowerSkinS = sharedPref.getFloat("lowerSkinS", 50f)
-        lowerSkinV = sharedPref.getFloat("lowerSkinV", 50f)
-        upperSkinH = sharedPref.getFloat("upperSkinH", 200f)
-        upperSkinS = sharedPref.getFloat("upperSkinS", 240f)
-        upperSkinV = sharedPref.getFloat("upperSkinV", 240f)
-        thresh = sharedPref.getFloat("thresh", 200f)
-        maxval = sharedPref.getFloat("maxval", 255f)
+        val sharedPref = activity?.getSharedPreferences("calibration", Activity.MODE_PRIVATE) ?: return
+        lowerSkinH = sharedPref.getFloat("lower-skin-h", 0f)
+        lowerSkinS = sharedPref.getFloat("lower-skin-s", 50f)
+        lowerSkinV = sharedPref.getFloat("lower-skin-v", 50f)
+        upperSkinH = sharedPref.getFloat("upper-skin-h", 200f)
+        upperSkinS = sharedPref.getFloat("upper-skin-s", 240f)
+        upperSkinV = sharedPref.getFloat("upper-skin-v", 240f)
+        thresh = sharedPref.getFloat("skin-thresh", 200f)
+        maxval = sharedPref.getFloat("skin-maxval", 255f)
+
+        Timber.i("lowerSkinH: $lowerSkinH")
+        Timber.i("lowerSkinS: $lowerSkinS")
+        Timber.i("lowerSkinV: $lowerSkinV")
+        Timber.i("upperSkinH: $upperSkinH")
+        Timber.i("upperSkinS: $upperSkinS")
+        Timber.i("upperSkinV: $upperSkinV")
+        Timber.i("thresh: $thresh")
+        Timber.i("maxval: $maxval")
     }
 
     private fun getVideoFrame(time: Long): Bitmap? {

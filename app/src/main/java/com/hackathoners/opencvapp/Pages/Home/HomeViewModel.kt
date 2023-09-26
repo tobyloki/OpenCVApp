@@ -1,4 +1,4 @@
-package com.hackathoners.opencvapp.Pages
+package com.hackathoners.opencvapp.Pages.Home
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -11,8 +11,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.hackathoners.opencvapp.Pages.Page2.CalibrationPage.CalibrationPage
-import com.hackathoners.opencvapp.Pages.Page2.Page2
+import com.hackathoners.opencvapp.Pages.Draw.CalibrationPage.CalibrationPageView
+import com.hackathoners.opencvapp.Pages.Draw.DrawView
 import com.hackathoners.opencvapp.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -90,13 +90,13 @@ class HomeViewModel : ViewModel() {
 
     fun goToPage2() {
         // go to page 2
-        val intent = Intent(activity, Page2::class.java)
+        val intent = Intent(activity, DrawView::class.java)
         intent.putExtra("value", "message from page 1")
         activity?.startActivity(intent)
     }
 
     fun goToCalibrationPage() {
-        val intent = Intent(activity, CalibrationPage::class.java)
+        val intent = Intent(activity, CalibrationPageView::class.java)
         activity?.startActivity(intent)
     }
 

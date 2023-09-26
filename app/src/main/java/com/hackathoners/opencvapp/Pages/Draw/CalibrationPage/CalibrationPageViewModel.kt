@@ -1,4 +1,4 @@
-package com.hackathoners.opencvapp.Pages.Page2.CalibrationPage
+package com.hackathoners.opencvapp.Pages.Draw.CalibrationPage
 
 import android.annotation.SuppressLint
 import android.app.Activity
@@ -89,15 +89,6 @@ class CalibrationPageViewModel : ViewModel() {
     // endregion
 
     // region Business logic
-    private fun invertBitmapColors(bitmap: Bitmap): Bitmap {
-        // https://www.youtube.com/watch?v=wJHv83HsPjA&list=PLTuKYqpidPXZjtOEjOgeKxNAe4NzSgsg8&index=5
-        val mat = Mat()
-        Utils.bitmapToMat(bitmap, mat)
-        Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2BGR)
-        Utils.matToBitmap(mat, bitmap)
-        return bitmap
-    }
-
     fun setLowerSkinValues() {
         lowerSkin = Scalar(slider1Value.toDouble(), slider2Value.toDouble(), slider3Value.toDouble())
     }
@@ -115,49 +106,59 @@ class CalibrationPageViewModel : ViewModel() {
 
     fun loadSkinValues() {
         // get from shared preferences
-        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
+        val sharedPref = activity?.getSharedPreferences("calibration", Activity.MODE_PRIVATE) ?: return
 
         // load lower hsv values
-        val lowhue = sharedPref.getInt("lower-skin-h", 0)
-        val lowsat = sharedPref.getInt("lower-skin-s", 0)
-        val lowvalue = sharedPref.getInt("lower-skin-v", 0)
+        val lowhue = sharedPref.getFloat("lower-skin-h", 0f)
+        val lowsat = sharedPref.getFloat("lower-skin-s", 50f)
+        val lowvalue = sharedPref.getFloat("lower-skin-v", 50f)
         lowerSkin = Scalar(lowhue.toDouble(), lowsat.toDouble(), lowvalue.toDouble())
 
         // load upper hsv values
-        val highhue = sharedPref.getInt("upper-skin-h", 0)
-        val highsat = sharedPref.getInt("upper-skin-s", 0)
-        val highvalue = sharedPref.getInt("upper-skin-v", 0)
+        val highhue = sharedPref.getFloat("upper-skin-h", 200f)
+        val highsat = sharedPref.getFloat("upper-skin-s", 240f)
+        val highvalue = sharedPref.getFloat("upper-skin-v", 240f)
         upperSkin = Scalar(highhue.toDouble(), lowsat.toDouble(), lowvalue.toDouble())
 
         // load thresh & maxval
-        thresh = sharedPref.getInt("skin-thresh", 0).toDouble()
-        maxval = sharedPref.getInt("skin-maxval", 0).toDouble()
+        thresh = sharedPref.getFloat("skin-thresh", 200f).toDouble()
+        maxval = sharedPref.getFloat("skin-maxval", 255f).toDouble()
 
         // Set slider positions to loaded values
-        slider1Value = lowhue.toFloat()
-        slider2Value = lowsat.toFloat()
-        slider3Value = lowvalue.toFloat()
-        slider4Value = highhue.toFloat()
-        slider5Value = highsat.toFloat()
-        slider6Value = highvalue.toFloat()
+        slider1Value = lowhue
+        slider2Value = lowsat
+        slider3Value = lowvalue
+        slider4Value = highhue
+        slider5Value = highsat
+        slider6Value = highvalue
         slider7Value = thresh.toFloat()
         slider8Value = maxval.toFloat()
 
+        setSkinValues()
+
+        Timber.i("lowerSkinH: $lowhue")
+        Timber.i("lowerSkinS: $lowsat")
+        Timber.i("lowerSkinV: $lowvalue")
+        Timber.i("upperSkinH: $highhue")
+        Timber.i("upperSkinS: $highsat")
+        Timber.i("upperSkinV: $highvalue")
+        Timber.i("thresh: $thresh")
+        Timber.i("maxval: $maxval")
     }
 
     fun saveSkinValues() {
         // Save lower skin values to shared preferences memory
         // save to shared preferences
-        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
+        val sharedPref = activity?.getSharedPreferences("calibration", Activity.MODE_PRIVATE) ?: return
         with (sharedPref.edit()) {
-            putInt("lower-skin-h", slider1Value.toInt())
-            putInt("lower-skin-s", slider2Value.toInt())
-            putInt("lower-skin-v", slider3Value.toInt())
-            putInt("upper-skin-h", slider4Value.toInt())
-            putInt("upper-skin-s", slider5Value.toInt())
-            putInt("upper-skin-v", slider6Value.toInt())
-            putInt("skin-thresh", slider7Value.toInt())
-            putInt("skin-maxval", slider8Value.toInt())
+            putFloat("lower-skin-h", slider1Value)
+            putFloat("lower-skin-s", slider2Value)
+            putFloat("lower-skin-v", slider3Value)
+            putFloat("upper-skin-h", slider4Value)
+            putFloat("upper-skin-s", slider5Value)
+            putFloat("upper-skin-v", slider6Value)
+            putFloat("skin-thresh", slider7Value)
+            putFloat("skin-maxval", slider8Value)
             apply()
         }
     }
@@ -207,7 +208,7 @@ class CalibrationPageViewModel : ViewModel() {
 
         // get threshold image
         val threshold = Mat()
-        Imgproc.threshold(mask, threshold, 200.0, 255.0, Imgproc.THRESH_BINARY)
+        Imgproc.threshold(mask, threshold, thresh, maxval, Imgproc.THRESH_BINARY)
 
         // Find contours in the mask
         val contours = ArrayList<MatOfPoint>()
