@@ -34,9 +34,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.hackathoners.opencvapp.Shared.Views.OverflowMenu
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
 import com.hackathoners.opencvapp.Shared.Views.BaseView
+import com.hackathoners.opencvapp.Shared.Views.OverflowMenu
 
 class HomeView : ComponentActivity() {
     private val viewModel by viewModels<HomeViewModel>()
@@ -119,6 +119,19 @@ fun HomeViewComposable(
                         dismissMenu()
                     },
                     text = { Text(text = "Go to calibration page") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = null
+                        )
+                    }
+                )
+                DropdownMenuItem(
+                    onClick = {
+                        viewModel.goToDrawPage()
+                        dismissMenu()
+                    },
+                    text = { Text(text = "Go to draw page") },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.ArrowForward,

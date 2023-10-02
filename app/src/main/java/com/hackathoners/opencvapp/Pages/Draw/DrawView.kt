@@ -62,8 +62,8 @@ import com.hackathoners.opencvapp.Extensions.flipBitmap
 import com.hackathoners.opencvapp.Pages.Draw.NoCameraPermissionScreen.NoCameraPermissionScreen
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
 import com.hackathoners.opencvapp.Shared.Views.BaseView
-import com.hackathoners.opencvapp.rotateBitmap
 import com.hackathoners.opencvapp.Shared.ui.theme.LightBlue
+import com.hackathoners.opencvapp.rotateBitmap
 import timber.log.Timber
 
 
@@ -169,7 +169,7 @@ fun DrawViewComposable(
                             .padding(top = 20.dp, bottom = 20.dp)
                     ) {
                         Text(
-                            text = "AI Gesture Art",
+                            text = "Draw",
                             fontSize = 30.sp
                         )
 

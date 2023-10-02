@@ -48,6 +48,9 @@ class DrawViewModel : ViewModel() {
     private var thresh = 0f
     private var maxval = 0f
 
+    private var prevpos : Point? = null
+    private var sketch : Mat? = null
+
     // region Initialize
     @SuppressLint("StaticFieldLeak")
     private var activity: Activity? = null
@@ -139,6 +142,10 @@ class DrawViewModel : ViewModel() {
             val frame = Mat()
             Utils.bitmapToMat(bitmap, frame)
 
+
+
+
+
             // START
 
             // Apply skin color segmentation (you may need to adjust these values)
@@ -205,9 +212,35 @@ class DrawViewModel : ViewModel() {
                     Scalar(0.0, 255.0, 0.0),
                     2
                 )
+
+                // initialize prevpos (if not already initialized)
+                if(prevpos == null) {
+                    prevpos = Point(0.0, 0.0)
+                }
+
+                // initialize sketch (if not already initialized)
+                if(sketch == null) {
+                    sketch = Mat(frame.size(), frame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
+                }
+
+                // Draw line from previous point to current point
+                Imgproc.line(
+                    sketch,
+                    prevpos,
+                    Point(cx.toDouble(), cy.toDouble()),
+                    Scalar(0.0, 255.0, 0.0),
+                    2
+                )
+                prevpos = Point(cx.toDouble(), cy.toDouble())
             }
 
+
             // END
+
+            // Merge the sketch with the frame
+            //   (!) Adjust alpha (0.7 in this case) as needed
+            Core.addWeighted(frame, 1.0, sketch, 0.7, 0.0, frame)
+
 
             val thresholdBitmap: Bitmap =
                 Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)

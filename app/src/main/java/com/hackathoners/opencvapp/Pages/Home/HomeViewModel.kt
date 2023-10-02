@@ -100,6 +100,11 @@ class HomeViewModel : ViewModel() {
         activity?.startActivity(intent)
     }
 
+    fun goToDrawPage() {
+        val intent = Intent(activity, DrawView::class.java)
+        activity?.startActivity(intent)
+    }
+
 //    fun selectImage() {
 //        val intent = Intent(Intent.ACTION_GET_CONTENT)
 //        intent.type = "image/*"
