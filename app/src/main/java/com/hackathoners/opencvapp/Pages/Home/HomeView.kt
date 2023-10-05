@@ -102,19 +102,6 @@ fun HomeViewComposable(
                 )
                 DropdownMenuItem(
                     onClick = {
-                        viewModel.goToPage2()
-                        dismissMenu()
-                    },
-                    text = { Text(text = "Go to page 2") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = null
-                        )
-                    }
-                )
-                DropdownMenuItem(
-                    onClick = {
                         viewModel.goToCalibrationPage()
                         dismissMenu()
                     },
@@ -155,9 +142,9 @@ fun HomeViewComposable(
                 Text(text = "Click me")
             }
             Button(
-                onClick = viewModel::goToPage2
+                onClick = viewModel::goToDrawPage
             ) {
-                Text(text = "Go to page 2")
+                Text(text = "Go to draw page")
             }
             Button(
                 onClick = viewModel::goToCalibrationPage
