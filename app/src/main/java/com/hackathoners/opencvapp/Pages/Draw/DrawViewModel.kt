@@ -9,10 +9,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.google.mediapipe.tasks.components.containers.Category
 import com.google.mediapipe.tasks.vision.core.RunningMode
+import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResult
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
-import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
-import com.hackathoners.opencvapp.Shared.Helpers.HandLandmarkerHelper
+import com.hackathoners.opencvapp.Shared.Helpers.GestureRecognizerHelper
 import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -68,8 +69,8 @@ class DrawViewModel : ViewModel() {
 
     /** Blocking ML operations are performed using this executor */
     private lateinit var backgroundExecutor: ExecutorService
-    private lateinit var handLandmarkerHelper: HandLandmarkerHelper
-    private var handLandmarkerResultBundle: HandLandmarkerHelper.ResultBundle? = null
+    private lateinit var gestureRecognizerHelper: GestureRecognizerHelper
+    private var gestureRecognizerResultBundle: GestureRecognizerHelper.ResultBundle? = null
 
     class SketchRNNPoint(
         val x: Double,
@@ -118,30 +119,30 @@ class DrawViewModel : ViewModel() {
         // Initialize our background executor
         backgroundExecutor = Executors.newSingleThreadExecutor()
 
-        // Create the HandLandmarkerHelper that will handle the inference
+        // Create the GestureRecognizerHelper that will handle the inference
         backgroundExecutor.execute {
-            handLandmarkerHelper = HandLandmarkerHelper(
+            gestureRecognizerHelper = GestureRecognizerHelper(
                 context = activity?.applicationContext!!,
                 runningMode = RunningMode.LIVE_STREAM,
-                currentDelegate = HandLandmarkerHelper.DELEGATE_GPU,
-                handLandmarkerHelperListener = object : HandLandmarkerHelper.LandmarkerListener {
+                currentDelegate = GestureRecognizerHelper.DELEGATE_CPU,
+                gestureRecognizerListener = object : GestureRecognizerHelper.GestureRecognizerListener {
                     override fun onError(error: String, errorCode: Int) {
-                        Timber.e("HandLandmarkerHelper error: $error, errorCode: $errorCode")
+                        Timber.e("GestureRecognizerHelper error: $error, errorCode: $errorCode")
                     }
 
-                    override fun onResults(resultBundle: HandLandmarkerHelper.ResultBundle) {
-//                        Timber.i("HandLandmarkerHelper results: $resultBundle")
-                        handLandmarkerResultBundle = resultBundle
+                    override fun onResults(resultBundle: GestureRecognizerHelper.ResultBundle) {
+//                        Timber.i("GestureRecognizerHelper results: $resultBundle")
+                        gestureRecognizerResultBundle = resultBundle
                     }
                 }
             )
         }
 
-        // Start the HandLandmarkerHelper again when users come back
+        // Start the GestureRecognizerHelper again when users come back
         // to the foreground.
         backgroundExecutor.execute {
-            if (handLandmarkerHelper.isClose()) {
-                handLandmarkerHelper.setupHandLandmarker()
+            if (gestureRecognizerHelper.isClosed()) {
+                gestureRecognizerHelper.setupGestureRecognizer()
             }
         }
 
@@ -151,9 +152,9 @@ class DrawViewModel : ViewModel() {
     fun onPause() {
         Timber.i("onPause")
 
-        if(this::handLandmarkerHelper.isInitialized) {
-            // Close the HandLandmarkerHelper and release resources
-            backgroundExecutor.execute { handLandmarkerHelper.clearHandLandmarker() }
+        if(this::gestureRecognizerHelper.isInitialized) {
+            // Close the GestureRecognizerHelper and release resources
+            backgroundExecutor.execute { gestureRecognizerHelper.clearGestureRecognizer() }
         }
 
         // Shut down our background executor
@@ -245,8 +246,8 @@ class DrawViewModel : ViewModel() {
     }
 
     fun handleFrame(bitmap: Bitmap) {
-        if(this::handLandmarkerHelper.isInitialized) {
-            handLandmarkerHelper.detectLiveStream(
+        if(this::gestureRecognizerHelper.isInitialized) {
+            gestureRecognizerHelper.recognizeLiveStream(
                 bitmap = bitmap
             )
         }
@@ -383,15 +384,42 @@ class DrawViewModel : ViewModel() {
             val handsFrame = Mat()
             originalFrame.copyTo(handsFrame)
 
-            if (handLandmarkerResultBundle != null) {
-                val handLandmarkerResults: HandLandmarkerResult = handLandmarkerResultBundle!!.results.first()
-                val imageHeight: Int = handLandmarkerResultBundle!!.inputImageHeight
-                val imageWidth: Int = handLandmarkerResultBundle!!.inputImageWidth
+            if (gestureRecognizerResultBundle != null) {
+                val gestureRecognizerResults: GestureRecognizerResult = gestureRecognizerResultBundle!!.results.first()
+                val gestureCategories: List<List<Category>> = gestureRecognizerResults.gestures()
+                val imageHeight: Int = gestureRecognizerResultBundle!!.inputImageHeight
+                val imageWidth: Int = gestureRecognizerResultBundle!!.inputImageWidth
                 val scaleFactor: Double = 1.0
 
-                handLandmarkerResults.let { handLandmarkerResult ->
-                    for (landmark in handLandmarkerResult.landmarks()) {
-                        for (normalizedLandmark in landmark) {
+                // write text on screen that says gesture
+                if (gestureCategories.isNotEmpty()) {
+                    val categories = gestureCategories.first()
+                    val sortedCategories = categories.sortedByDescending { it.score() }
+                    val firstCategory = sortedCategories.first()
+
+                    if (gestureCategories.isNotEmpty()) {
+                        Imgproc.putText(
+                            handsFrame,
+                            "${firstCategory.categoryName()} - ${String.format("%.2f", firstCategory.score())}",
+                            Point(10.0, 50.0),
+                            0,
+                            1.0,
+                            Scalar(255.0, 0.0, 0.0),
+                            2
+                        )
+                    }
+                }
+
+                gestureRecognizerResults.let { gestureRecognizerResult ->
+                    val landmarks = gestureRecognizerResult.landmarks()
+//                    for (landmark in landmarks) {
+                    if (landmarks.isNotEmpty()) {
+                        val landmark = gestureRecognizerResult.landmarks()[0]
+                        Timber.i("count: ${landmark.count()}")
+                        for (i in 0 until landmark.count()) {
+                            val normalizedLandmark = landmark[i]
+                            val isIndexFinger = i == 8
+
                             // draw points on screen
                             Imgproc.circle(
                                 handsFrame,
@@ -400,21 +428,34 @@ class DrawViewModel : ViewModel() {
                                     normalizedLandmark.y() * imageHeight * scaleFactor
                                 ),
                                 4,
-                                Scalar(0.0, 0.0, 255.0),
+                                if (isIndexFinger) Scalar(255.0, 0.0, 0.0) else Scalar(0.0, 0.0, 255.0),
                                 2
                             )
+                            // add text to points of index
+//                            Imgproc.putText(
+//                                handsFrame,
+//                                "$i",
+//                                Point(
+//                                    normalizedLandmark.x() * imageWidth * scaleFactor,
+//                                    normalizedLandmark.y() * imageHeight * scaleFactor
+//                                ),
+//                                0,
+//                                1.0,
+//                                Scalar(0.0, 0.0, 255.0),
+//                                2
+//                            )
 
                             // draw lines on screen
                             HandLandmarker.HAND_CONNECTIONS.forEach {
                                 Imgproc.line(
                                     handsFrame,
                                     Point(
-                                        handLandmarkerResult.landmarks()[0][it.start()].x() * imageWidth * scaleFactor,
-                                        handLandmarkerResult.landmarks()[0][it.start()].y() * imageHeight * scaleFactor
+                                        gestureRecognizerResult.landmarks()[0][it.start()].x() * imageWidth * scaleFactor,
+                                        gestureRecognizerResult.landmarks()[0][it.start()].y() * imageHeight * scaleFactor
                                     ),
                                     Point(
-                                        handLandmarkerResult.landmarks()[0][it.end()].x() * imageWidth * scaleFactor,
-                                        handLandmarkerResult.landmarks()[0][it.end()].y() * imageHeight * scaleFactor
+                                        gestureRecognizerResult.landmarks()[0][it.end()].x() * imageWidth * scaleFactor,
+                                        gestureRecognizerResult.landmarks()[0][it.end()].y() * imageHeight * scaleFactor
                                     ),
                                     Scalar(0.0, 0.0, 255.0),
                                     2
