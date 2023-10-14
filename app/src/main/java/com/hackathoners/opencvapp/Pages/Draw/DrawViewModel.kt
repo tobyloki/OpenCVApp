@@ -12,10 +12,16 @@ import androidx.lifecycle.ViewModel
 import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
+import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
@@ -32,6 +38,7 @@ enum class Mode {
     VIDEO
 }
 
+@OptIn(DelicateCoroutinesApi::class)
 class DrawViewModel : ViewModel() {
     var originalImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
@@ -115,6 +122,8 @@ class DrawViewModel : ViewModel() {
         Timber.i("onResume")
 
         loadCalibrationValues()
+
+        getSketchRNNPrediction()
     }
 
     fun onPause() {
@@ -153,6 +162,51 @@ class DrawViewModel : ViewModel() {
         }
         return bitmap
     }
+
+    class SketchRNNPoint(
+        val x: Double,
+        val y: Double,
+        val p1: Int,
+        val p2: Int,
+        val p3: Int
+    )
+    private var points = mutableListOf<SketchRNNPoint>()
+
+    private fun getSketchRNNPrediction() {
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                // create json object with model string and strokes array of numbers
+                val input = JSONObject( mapOf(
+                    "model" to "bird",
+//                    "strokes" to JSONArray(listOf(1, 2, 3, 4, 5))
+                ) )
+                val data = async { HTTP.POST("/simple_predict_absolute", input.toString()) }.await()
+                Timber.i("sketchRNN data: $data")
+                if(!data.isNullOrBlank()) {
+                    val json = JSONArray(data)
+                    // convert to list of points
+                    points = mutableListOf<SketchRNNPoint>()
+                    for (i in 0 until json.length()) {
+                        val point = json.getJSONArray(i)
+                        points.add(
+                            SketchRNNPoint(
+                                point.getDouble(0) / 8,
+                                point.getDouble(1) / 8,
+                                point.getInt(2),
+                                point.getInt(3),
+                                point.getInt(4)
+                            )
+                        )
+                    }
+                }
+                // print count of points and last point
+                Timber.i("points count: ${points.count()}")
+                Timber.i("last point: ${points.last().x}, ${points.last().y}")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
     // endregion
 
     // region UI actions
@@ -171,10 +225,6 @@ class DrawViewModel : ViewModel() {
             // hand tracking on bitmap
             val frame = Mat()
             Utils.bitmapToMat(bitmap, frame)
-
-
-
-
 
             // START
 
@@ -207,70 +257,97 @@ class DrawViewModel : ViewModel() {
             )
 
             // Find the largest contour (assuming it's the hand)
-            var maxArea = 0.0
+            var minArea = 0.0
             var maxContour: MatOfPoint? = null
             for (contour in contours) {
                 val area = Imgproc.contourArea(contour)
-                if (area > maxArea) {
-                    maxArea = area
+                if (area > minArea) {
+                    minArea = area
                     maxContour = contour
                 }
             }
 
-            // Draw a bounding box around the hand
-            if (maxContour != null) {
-                val boundingRect = Imgproc.boundingRect(maxContour)
-                Imgproc.rectangle(
-                    frame,
-                    boundingRect.tl(),
-                    boundingRect.br(),
-                    Scalar(0.0, 255.0, 0.0),
-                    2
-                )
-
-                // Compute the centroid of the largest contour
-                val moments = Imgproc.moments(maxContour)
-                val cx = (moments.m10 / moments.m00).toInt()
-                val cy = (moments.m01 / moments.m00).toInt()
-
-                // Draw a circle with the center as the centroid and the radius based on the bounding rectangle's diagonal length
-//            val radius = Math.sqrt((boundingRect.width * boundingRect.width + boundingRect.height * boundingRect.height) / 2.0).toInt()
-                Imgproc.circle(
-                    frame,
-                    Point(cx.toDouble(), cy.toDouble()),
-                    10,
-                    Scalar(0.0, 255.0, 0.0),
-                    2
-                )
-
-                // initialize prevpos (if not already initialized)
-                if(prevpos == null) {
-                    prevpos = Point(0.0, 0.0)
-                }
-
-                // initialize sketch (if not already initialized)
-                if(sketch == null) {
-                    sketch = Mat(frame.size(), frame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
-                }
-
-                // Draw line from previous point to current point
-                Imgproc.line(
-                    sketch,
-                    prevpos,
-                    Point(cx.toDouble(), cy.toDouble()),
-                    Scalar(0.0, 255.0, 0.0),
-                    2
-                )
-                prevpos = Point(cx.toDouble(), cy.toDouble())
+            // initialize sketch (if not already initialized)
+            if (sketch == null) {
+                sketch = Mat(frame.size(), frame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
             }
 
+            // Draw a bounding box around the hand
+            if (maxContour != null) {
+                val area = maxContour.size().area()
+                if (area > 350) {   // min area
+                    val boundingRect = Imgproc.boundingRect(maxContour)
+                    Imgproc.rectangle(
+                        frame,
+                        boundingRect.tl(),
+                        boundingRect.br(),
+                        Scalar(0.0, 255.0, 0.0),
+                        2
+                    )
+
+                    // Compute the centroid of the largest contour
+                    val moments = Imgproc.moments(maxContour)
+                    val cx = (moments.m10 / moments.m00).toInt()
+                    val cy = (moments.m01 / moments.m00).toInt()
+
+                    // Draw a circle with the center as the centroid and the radius based on the bounding rectangle's diagonal length
+//            val radius = Math.sqrt((boundingRect.width * boundingRect.width + boundingRect.height * boundingRect.height) / 2.0).toInt()
+                    Imgproc.circle(
+                        frame,
+                        Point(cx.toDouble(), cy.toDouble()),
+                        10,
+                        Scalar(0.0, 255.0, 0.0),
+                        2
+                    )
+
+                    // initialize prevpos (if not already initialized)
+                    if (prevpos == null) {
+                        prevpos = Point(0.0, 0.0)
+                    }
+
+                    // Draw line from previous point to current point
+                    Imgproc.line(
+                        sketch,
+                        prevpos,
+                        Point(cx.toDouble(), cy.toDouble()),
+                        Scalar(0.0, 255.0, 0.0),
+                        2
+                    )
+                    prevpos = Point(cx.toDouble(), cy.toDouble())
+
+                    // draw text on screen
+                    Imgproc.putText(
+                        frame,
+                        "x: $cx, y: $cy, area: $area",
+                        Point(10.0, 50.0),
+                        0,
+                        1.0,
+                        Scalar(255.0, 0.0, 0.0),
+                        2
+                    )
+                }
+            }
+
+            // TODO: draw points on screen
+            for (point in points) {
+                try {
+                    Imgproc.circle(
+                        frame,
+                        Point(point.x, point.y),
+                        1,
+                        Scalar(0.0, 0.0, 255.0),
+                        2
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
 
             // END
 
             // Merge the sketch with the frame
             //   (!) Adjust alpha (0.7 in this case) as needed
             Core.addWeighted(frame, 1.0, sketch, 0.7, 0.0, frame)
-
 
             val thresholdBitmap: Bitmap =
                 Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)

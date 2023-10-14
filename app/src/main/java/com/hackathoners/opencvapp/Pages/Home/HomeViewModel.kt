@@ -88,13 +88,6 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    fun goToPage2() {
-        // go to page 2
-        val intent = Intent(activity, DrawView::class.java)
-        intent.putExtra("value", "message from page 1")
-        activity?.startActivity(intent)
-    }
-
     fun goToCalibrationPage() {
         val intent = Intent(activity, CalibrationPageView::class.java)
         activity?.startActivity(intent)

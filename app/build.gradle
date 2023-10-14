@@ -91,4 +91,7 @@ dependencies {
     // Google MediaPipe
     //OLD: implementation 'com.google.mediapipe:mediapipe:0.10.5'
     implementation 'com.google.mediapipe:tasks-vision:latest.release'
+
+    // OkHTTP
+    implementation "com.squareup.okhttp3:okhttp:4.11.0"
 }
