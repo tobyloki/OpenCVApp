@@ -9,6 +9,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.google.mediapipe.tasks.core.BaseOptions
+import com.google.mediapipe.tasks.vision.core.RunningMode
+import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -51,6 +54,12 @@ class DrawViewModel : ViewModel() {
     private var prevpos : Point? = null
     private var sketch : Mat? = null
 
+    // MediaPipe
+    // MODEL INSTALL PAGE: (https://developers.google.com/mediapipe/solutions/vision/hand_landmarker)
+    // How-to: (https://developers.google.com/mediapipe/solutions/vision/hand_landmarker/android#live-stream)
+    val HAND_LANDMARKER_MODEL = "" //TODO: Install model
+    private lateinit var handLandmarker: HandLandmarker
+
     // region Initialize
     @SuppressLint("StaticFieldLeak")
     private var activity: Activity? = null
@@ -79,6 +88,27 @@ class DrawViewModel : ViewModel() {
         } catch (ex: RuntimeException) {
             ex.printStackTrace()
         }
+
+        // MediaPipe
+        val baseOptionsBuilder = BaseOptions.builder().setModelAssetPath(HAND_LANDMARKER_MODEL)
+        val baseOptions = baseOptionsBuilder.build()
+
+        val optionsBuilder = HandLandmarker.HandLandmarkerOptions.builder()
+            .setBaseOptions(baseOptions)
+            //.setMinHandDetectionConfidence( ) //TODO: Set these parameters
+            //.setMinTrackingConfidence( )
+            //.setMinHandPresenceConfidence( )
+            //.setNumHands( )
+            //.setResultListener( )
+            //.setErrorListener( )
+            .setRunningMode(RunningMode.VIDEO)
+
+        val options = optionsBuilder.build()
+
+        // Tutorial used `context` but I'm not sure what that is
+        //handLandmarker = HandLandmarker.createFromOptions(context, options)
+        // This works in DrawView.kt but not here:
+        //handLandmarker = HandLandmarker.createFromOptions(this, options)
     }
 
     fun onResume() {
