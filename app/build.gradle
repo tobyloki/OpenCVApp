@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
+    id 'de.undercouch.download'
 }
 
 android {
@@ -35,6 +36,7 @@ android {
     }
     buildFeatures {
         compose true
+        viewBinding true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.4.3'
@@ -45,6 +47,10 @@ android {
         }
     }
 }
+
+// import DownloadMPTasks task
+project.ext.ASSET_DIR = projectDir.toString() + '/src/main/assets'
+apply from: 'download_tasks.gradle'
 
 dependencies {
 
@@ -89,8 +95,7 @@ dependencies {
     implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
 
     // Google MediaPipe
-    //OLD: implementation 'com.google.mediapipe:mediapipe:0.10.5'
-    implementation 'com.google.mediapipe:tasks-vision:latest.release'
+    implementation 'com.google.mediapipe:tasks-vision:0.10.5'
 
     // OkHTTP
     implementation "com.squareup.okhttp3:okhttp:4.11.0"

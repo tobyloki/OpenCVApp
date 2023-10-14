@@ -9,9 +9,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.google.mediapipe.tasks.core.BaseOptions
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
+import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarkerResult
+import com.hackathoners.opencvapp.Shared.Helpers.HandLandmarkerHelper
 import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -31,6 +32,9 @@ import org.opencv.core.Scalar
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import timber.log.Timber
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 // create enum called mode with values of camera or video
 enum class Mode {
@@ -42,6 +46,7 @@ enum class Mode {
 class DrawViewModel : ViewModel() {
     var originalImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+    var handsImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var outputImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 
     private val viewModelJob = Job()
@@ -61,11 +66,19 @@ class DrawViewModel : ViewModel() {
     private var prevpos : Point? = null
     private var sketch : Mat? = null
 
-    // MediaPipe
-    // MODEL INSTALL PAGE: (https://developers.google.com/mediapipe/solutions/vision/hand_landmarker)
-    // How-to: (https://developers.google.com/mediapipe/solutions/vision/hand_landmarker/android#live-stream)
-    val HAND_LANDMARKER_MODEL = "" //TODO: Install model
-    private lateinit var handLandmarker: HandLandmarker
+    /** Blocking ML operations are performed using this executor */
+    private lateinit var backgroundExecutor: ExecutorService
+    private lateinit var handLandmarkerHelper: HandLandmarkerHelper
+    private var handLandmarkerResultBundle: HandLandmarkerHelper.ResultBundle? = null
+
+    class SketchRNNPoint(
+        val x: Double,
+        val y: Double,
+        val p1: Int,
+        val p2: Int,
+        val p3: Int
+    )
+    private var sketchRNNPoints = mutableListOf<SketchRNNPoint>()
 
     // region Initialize
     @SuppressLint("StaticFieldLeak")
@@ -95,27 +108,6 @@ class DrawViewModel : ViewModel() {
         } catch (ex: RuntimeException) {
             ex.printStackTrace()
         }
-
-        // MediaPipe
-        val baseOptionsBuilder = BaseOptions.builder().setModelAssetPath(HAND_LANDMARKER_MODEL)
-        val baseOptions = baseOptionsBuilder.build()
-
-        val optionsBuilder = HandLandmarker.HandLandmarkerOptions.builder()
-            .setBaseOptions(baseOptions)
-            //.setMinHandDetectionConfidence( ) //TODO: Set these parameters
-            //.setMinTrackingConfidence( )
-            //.setMinHandPresenceConfidence( )
-            //.setNumHands( )
-            //.setResultListener( )
-            //.setErrorListener( )
-            .setRunningMode(RunningMode.VIDEO)
-
-        val options = optionsBuilder.build()
-
-        // Tutorial used `context` but I'm not sure what that is
-        //handLandmarker = HandLandmarker.createFromOptions(context, options)
-        // This works in DrawView.kt but not here:
-        //handLandmarker = HandLandmarker.createFromOptions(this, options)
     }
 
     fun onResume() {
@@ -123,11 +115,52 @@ class DrawViewModel : ViewModel() {
 
         loadCalibrationValues()
 
+        // Initialize our background executor
+        backgroundExecutor = Executors.newSingleThreadExecutor()
+
+        // Create the HandLandmarkerHelper that will handle the inference
+        backgroundExecutor.execute {
+            handLandmarkerHelper = HandLandmarkerHelper(
+                context = activity?.applicationContext!!,
+                runningMode = RunningMode.LIVE_STREAM,
+                currentDelegate = HandLandmarkerHelper.DELEGATE_GPU,
+                handLandmarkerHelperListener = object : HandLandmarkerHelper.LandmarkerListener {
+                    override fun onError(error: String, errorCode: Int) {
+                        Timber.e("HandLandmarkerHelper error: $error, errorCode: $errorCode")
+                    }
+
+                    override fun onResults(resultBundle: HandLandmarkerHelper.ResultBundle) {
+//                        Timber.i("HandLandmarkerHelper results: $resultBundle")
+                        handLandmarkerResultBundle = resultBundle
+                    }
+                }
+            )
+        }
+
+        // Start the HandLandmarkerHelper again when users come back
+        // to the foreground.
+        backgroundExecutor.execute {
+            if (handLandmarkerHelper.isClose()) {
+                handLandmarkerHelper.setupHandLandmarker()
+            }
+        }
+
         getSketchRNNPrediction()
     }
 
     fun onPause() {
         Timber.i("onPause")
+
+        if(this::handLandmarkerHelper.isInitialized) {
+            // Close the HandLandmarkerHelper and release resources
+            backgroundExecutor.execute { handLandmarkerHelper.clearHandLandmarker() }
+        }
+
+        // Shut down our background executor
+        backgroundExecutor.shutdown()
+        backgroundExecutor.awaitTermination(
+            Long.MAX_VALUE, TimeUnit.NANOSECONDS
+        )
     }
     // endregion
 
@@ -163,15 +196,6 @@ class DrawViewModel : ViewModel() {
         return bitmap
     }
 
-    class SketchRNNPoint(
-        val x: Double,
-        val y: Double,
-        val p1: Int,
-        val p2: Int,
-        val p3: Int
-    )
-    private var points = mutableListOf<SketchRNNPoint>()
-
     private fun getSketchRNNPrediction() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
@@ -185,10 +209,10 @@ class DrawViewModel : ViewModel() {
                 if(!data.isNullOrBlank()) {
                     val json = JSONArray(data)
                     // convert to list of points
-                    points = mutableListOf<SketchRNNPoint>()
+                    sketchRNNPoints = mutableListOf<SketchRNNPoint>()
                     for (i in 0 until json.length()) {
                         val point = json.getJSONArray(i)
-                        points.add(
+                        sketchRNNPoints.add(
                             SketchRNNPoint(
                                 point.getDouble(0) / 8,
                                 point.getDouble(1) / 8,
@@ -200,8 +224,8 @@ class DrawViewModel : ViewModel() {
                     }
                 }
                 // print count of points and last point
-                Timber.i("points count: ${points.count()}")
-                Timber.i("last point: ${points.last().x}, ${points.last().y}")
+                Timber.i("points count: ${sketchRNNPoints.count()}")
+                Timber.i("last point: ${sketchRNNPoints.last().x}, ${sketchRNNPoints.last().y}")
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -215,22 +239,28 @@ class DrawViewModel : ViewModel() {
 //            Timber.i("handleVideoFrame: $time")
             val bitmap = getVideoFrame(time)
             if (bitmap != null) {
-                handleImage(bitmap)
+                handleFrame(bitmap)
             }
         }
     }
 
-    fun handleImage(bitmap: Bitmap) {
+    fun handleFrame(bitmap: Bitmap) {
+        if(this::handLandmarkerHelper.isInitialized) {
+            handLandmarkerHelper.detectLiveStream(
+                bitmap = bitmap
+            )
+        }
+
         coroutineScope.launch {
             // hand tracking on bitmap
-            val frame = Mat()
-            Utils.bitmapToMat(bitmap, frame)
+            val originalFrame = Mat()
+            Utils.bitmapToMat(bitmap, originalFrame)
 
             // START
 
             // Apply skin color segmentation (you may need to adjust these values)
             val hsvFrame = Mat()
-            Imgproc.cvtColor(frame, hsvFrame, Imgproc.COLOR_BGR2HSV)
+            Imgproc.cvtColor(originalFrame, hsvFrame, Imgproc.COLOR_BGR2HSV)
 
             val lowerSkin = Scalar(lowerSkinH.toDouble(), lowerSkinS.toDouble(), lowerSkinV.toDouble())
             val upperSkin = Scalar(upperSkinH.toDouble(), upperSkinS.toDouble(), upperSkinV.toDouble())
@@ -242,14 +272,14 @@ class DrawViewModel : ViewModel() {
             Imgproc.blur(mask, blur, Size(2.0, 2.0))
 
             // get threshold image
-            val threshold = Mat()
-            Imgproc.threshold(mask, threshold, thresh.toDouble(), maxval.toDouble(), Imgproc.THRESH_BINARY)
+            val thresholdFrame = Mat()
+            Imgproc.threshold(mask, thresholdFrame, thresh.toDouble(), maxval.toDouble(), Imgproc.THRESH_BINARY)
 
             // Find contours in the mask
             val contours = ArrayList<MatOfPoint>()
             val hierarchy = Mat()
             Imgproc.findContours(
-                threshold,
+                thresholdFrame,
                 contours,
                 hierarchy,
                 Imgproc.RETR_EXTERNAL,
@@ -269,16 +299,19 @@ class DrawViewModel : ViewModel() {
 
             // initialize sketch (if not already initialized)
             if (sketch == null) {
-                sketch = Mat(frame.size(), frame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
+                sketch = Mat(originalFrame.size(), originalFrame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
             }
 
             // Draw a bounding box around the hand
+            val drawFrame = Mat()
+            originalFrame.copyTo(drawFrame)
+
             if (maxContour != null) {
                 val area = maxContour.size().area()
                 if (area > 350) {   // min area
                     val boundingRect = Imgproc.boundingRect(maxContour)
                     Imgproc.rectangle(
-                        frame,
+                        drawFrame,
                         boundingRect.tl(),
                         boundingRect.br(),
                         Scalar(0.0, 255.0, 0.0),
@@ -293,7 +326,7 @@ class DrawViewModel : ViewModel() {
                     // Draw a circle with the center as the centroid and the radius based on the bounding rectangle's diagonal length
 //            val radius = Math.sqrt((boundingRect.width * boundingRect.width + boundingRect.height * boundingRect.height) / 2.0).toInt()
                     Imgproc.circle(
-                        frame,
+                        drawFrame,
                         Point(cx.toDouble(), cy.toDouble()),
                         10,
                         Scalar(0.0, 255.0, 0.0),
@@ -317,7 +350,7 @@ class DrawViewModel : ViewModel() {
 
                     // draw text on screen
                     Imgproc.putText(
-                        frame,
+                        drawFrame,
                         "x: $cx, y: $cy, area: $area",
                         Point(10.0, 50.0),
                         0,
@@ -328,11 +361,11 @@ class DrawViewModel : ViewModel() {
                 }
             }
 
-            // TODO: draw points on screen
-            for (point in points) {
+            // TODO: draw sketch rnn points on screen
+            for (point in sketchRNNPoints) {
                 try {
                     Imgproc.circle(
-                        frame,
+                        originalFrame,
                         Point(point.x, point.y),
                         1,
                         Scalar(0.0, 0.0, 255.0),
@@ -345,22 +378,72 @@ class DrawViewModel : ViewModel() {
 
             // END
 
+            // hands start
+
+            val handsFrame = Mat()
+            originalFrame.copyTo(handsFrame)
+
+            if (handLandmarkerResultBundle != null) {
+                val handLandmarkerResults: HandLandmarkerResult = handLandmarkerResultBundle!!.results.first()
+                val imageHeight: Int = handLandmarkerResultBundle!!.inputImageHeight
+                val imageWidth: Int = handLandmarkerResultBundle!!.inputImageWidth
+                val scaleFactor: Double = 1.0
+
+                handLandmarkerResults.let { handLandmarkerResult ->
+                    for (landmark in handLandmarkerResult.landmarks()) {
+                        for (normalizedLandmark in landmark) {
+                            // draw points on screen
+                            Imgproc.circle(
+                                handsFrame,
+                                Point(
+                                    normalizedLandmark.x() * imageWidth * scaleFactor,
+                                    normalizedLandmark.y() * imageHeight * scaleFactor
+                                ),
+                                4,
+                                Scalar(0.0, 0.0, 255.0),
+                                2
+                            )
+
+                            // draw lines on screen
+                            HandLandmarker.HAND_CONNECTIONS.forEach {
+                                Imgproc.line(
+                                    handsFrame,
+                                    Point(
+                                        handLandmarkerResult.landmarks()[0][it.start()].x() * imageWidth * scaleFactor,
+                                        handLandmarkerResult.landmarks()[0][it.start()].y() * imageHeight * scaleFactor
+                                    ),
+                                    Point(
+                                        handLandmarkerResult.landmarks()[0][it.end()].x() * imageWidth * scaleFactor,
+                                        handLandmarkerResult.landmarks()[0][it.end()].y() * imageHeight * scaleFactor
+                                    ),
+                                    Scalar(0.0, 0.0, 255.0),
+                                    2
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // hands end
+
             // Merge the sketch with the frame
             //   (!) Adjust alpha (0.7 in this case) as needed
-            Core.addWeighted(frame, 1.0, sketch, 0.7, 0.0, frame)
+            Core.addWeighted(drawFrame, 1.0, sketch, 0.7, 0.0, drawFrame)
 
-            val thresholdBitmap: Bitmap =
-                Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-            Utils.matToBitmap(threshold, thresholdBitmap)
-            val newBitmap: Bitmap =
-                Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-            Utils.matToBitmap(frame, newBitmap)
+            val thresholdBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(thresholdFrame, thresholdBitmap)
+            val handsBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(handsFrame, handsBitmap)
+            val drawBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(drawFrame, drawBitmap)
 
             // run on UI thread
             activity?.runOnUiThread {
                 originalImage = bitmap
                 thresholdImage = thresholdBitmap
-                outputImage = newBitmap
+                handsImage = handsBitmap
+                outputImage = drawBitmap
             }
         }
     }

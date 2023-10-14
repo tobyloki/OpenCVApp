@@ -141,7 +141,7 @@ fun DrawViewComposable(
                             cameraController.setImageAnalysisAnalyzer(
                                 ContextCompat.getMainExecutor(context),
                                 GetFrameBitmap(onFrame = { bitmap ->
-                                    viewModel.handleImage(bitmap)
+                                    viewModel.handleFrame(bitmap)
                                 })
                             )
 
@@ -265,6 +265,26 @@ fun DrawViewComposable(
                         ) {
                             Image(
                                 bitmap = viewModel.thresholdImage.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(300.dp)
+                                .border(
+                                    border = BorderStroke(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.primary
+                                    ),
+                                    shape = MaterialTheme.shapes.medium
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                bitmap = viewModel.handsImage.asImageBitmap(),
                                 contentDescription = null,
                                 modifier = Modifier.fillMaxSize()
                             )
