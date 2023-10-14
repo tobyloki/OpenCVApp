@@ -8,12 +8,17 @@ import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.font.Font
 import androidx.lifecycle.ViewModel
+import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import org.json.JSONObject
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
@@ -30,6 +35,7 @@ enum class Mode {
     VIDEO
 }
 
+@OptIn(DelicateCoroutinesApi::class)
 class DrawViewModel : ViewModel() {
     var originalImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
@@ -86,6 +92,8 @@ class DrawViewModel : ViewModel() {
         Timber.i("onResume")
 
         loadCalibrationValues()
+
+        getSketchRNNPrediction()
     }
 
     fun onPause() {
@@ -123,6 +131,51 @@ class DrawViewModel : ViewModel() {
             ex.printStackTrace()
         }
         return bitmap
+    }
+
+    class SketchRNNPoint(
+        val x: Double,
+        val y: Double,
+        val p1: Int,
+        val p2: Int,
+        val p3: Int
+    )
+    private var points = mutableListOf<SketchRNNPoint>()
+
+    private fun getSketchRNNPrediction() {
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
+                // create json object with model string and strokes array of numbers
+                val input = JSONObject( mapOf(
+                    "model" to "bird",
+//                    "strokes" to JSONArray(listOf(1, 2, 3, 4, 5))
+                ) )
+                val data = async { HTTP.POST("/simple_predict_absolute", input.toString()) }.await()
+                Timber.i("sketchRNN data: $data")
+                if(!data.isNullOrBlank()) {
+                    val json = JSONArray(data)
+                    // convert to list of points
+                    points = mutableListOf<SketchRNNPoint>()
+                    for (i in 0 until json.length()) {
+                        val point = json.getJSONArray(i)
+                        points.add(
+                            SketchRNNPoint(
+                                point.getDouble(0) / 8,
+                                point.getDouble(1) / 8,
+                                point.getInt(2),
+                                point.getInt(3),
+                                point.getInt(4)
+                            )
+                        )
+                    }
+                }
+                // print count of points and last point
+                Timber.i("points count: ${points.count()}")
+                Timber.i("last point: ${points.last().x}, ${points.last().y}")
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
     // endregion
 
@@ -239,9 +292,24 @@ class DrawViewModel : ViewModel() {
                         Point(10.0, 50.0),
                         0,
                         1.0,
-                        Scalar(0.0, 255.0, 0.0),
+                        Scalar(255.0, 0.0, 0.0),
                         2
                     )
+                }
+            }
+
+            // TODO: draw points on screen
+            for (point in points) {
+                try {
+                    Imgproc.circle(
+                        frame,
+                        Point(point.x, point.y),
+                        1,
+                        Scalar(0.0, 0.0, 255.0),
+                        2
+                    )
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
 

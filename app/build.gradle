@@ -86,4 +86,7 @@ dependencies {
 
     // exoplayer
     implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
+
+    // OkHTTP
+    implementation "com.squareup.okhttp3:okhttp:4.11.0"
 }
