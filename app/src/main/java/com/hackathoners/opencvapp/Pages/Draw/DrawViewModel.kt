@@ -45,10 +45,10 @@ enum class Mode {
 
 @OptIn(DelicateCoroutinesApi::class)
 class DrawViewModel : ViewModel() {
-    var originalImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-    var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+//    var originalImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+//    var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var handsImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-    var outputImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+//    var outputImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 
     private val viewModelJob = Job()
     private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Default)
@@ -64,9 +64,8 @@ class DrawViewModel : ViewModel() {
     private var thresh = 0f
     private var maxval = 0f
 
-    private var prevpos : Point? = null
-    private var sketch : Mat? = null
-
+//    private var prevpos : Point? = null
+//    private var sketch : Mat? = null
     private var prevpos2 : Point? = null
     private var sketch2 : Mat? = null
 
@@ -263,108 +262,108 @@ class DrawViewModel : ViewModel() {
 
             // START
 
-            // Apply skin color segmentation (you may need to adjust these values)
-            val hsvFrame = Mat()
-            Imgproc.cvtColor(originalFrame, hsvFrame, Imgproc.COLOR_BGR2HSV)
-
-            val lowerSkin = Scalar(lowerSkinH.toDouble(), lowerSkinS.toDouble(), lowerSkinV.toDouble())
-            val upperSkin = Scalar(upperSkinH.toDouble(), upperSkinS.toDouble(), upperSkinV.toDouble())
-            val mask = Mat()
-            Core.inRange(hsvFrame, lowerSkin, upperSkin, mask)
-
-            // blur the mask to reduce noise
-            val blur = Mat()
-            Imgproc.blur(mask, blur, Size(2.0, 2.0))
-
-            // get threshold image
-            val thresholdFrame = Mat()
-            Imgproc.threshold(mask, thresholdFrame, thresh.toDouble(), maxval.toDouble(), Imgproc.THRESH_BINARY)
-
-            // Find contours in the mask
-            val contours = ArrayList<MatOfPoint>()
-            val hierarchy = Mat()
-            Imgproc.findContours(
-                thresholdFrame,
-                contours,
-                hierarchy,
-                Imgproc.RETR_EXTERNAL,
-                Imgproc.CHAIN_APPROX_SIMPLE
-            )
-
-            // Find the largest contour (assuming it's the hand)
-            var minArea = 0.0
-            var maxContour: MatOfPoint? = null
-            for (contour in contours) {
-                val area = Imgproc.contourArea(contour)
-                if (area > minArea) {
-                    minArea = area
-                    maxContour = contour
-                }
-            }
-
-            // Draw a bounding box around the hand
-            val drawFrame = Mat()
-            originalFrame.copyTo(drawFrame)
-
-            if (maxContour != null) {
-                val area = maxContour.size().area()
-                if (area > 350) {   // min area
-                    val boundingRect = Imgproc.boundingRect(maxContour)
-                    Imgproc.rectangle(
-                        drawFrame,
-                        boundingRect.tl(),
-                        boundingRect.br(),
-                        Scalar(0.0, 255.0, 0.0),
-                        2
-                    )
-
-                    // Compute the centroid of the largest contour
-                    val moments = Imgproc.moments(maxContour)
-                    val cx = (moments.m10 / moments.m00).toInt()
-                    val cy = (moments.m01 / moments.m00).toInt()
-
-                    // Draw a circle with the center as the centroid and the radius based on the bounding rectangle's diagonal length
-//            val radius = Math.sqrt((boundingRect.width * boundingRect.width + boundingRect.height * boundingRect.height) / 2.0).toInt()
-                    Imgproc.circle(
-                        drawFrame,
-                        Point(cx.toDouble(), cy.toDouble()),
-                        10,
-                        Scalar(0.0, 255.0, 0.0),
-                        2
-                    )
-
-                    // initialize sketch (if not already initialized)
-                    if (sketch == null) {
-                        sketch = Mat(originalFrame.size(), originalFrame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
-                    }
-
-                    // initialize prevpos (if not already initialized)
-                    if (prevpos == null) {
-                        prevpos = Point(0.0, 0.0)
-                    }
-
-                    // Draw line from previous point to current point
-                    Imgproc.line(
-                        sketch,
-                        prevpos,
-                        Point(cx.toDouble(), cy.toDouble()),
-                        Scalar(0.0, 255.0, 0.0),
-                        2
-                    )
-                    prevpos = Point(cx.toDouble(), cy.toDouble())
-
-                    // draw text on screen
-                    Imgproc.putText(
-                        drawFrame,
-                        "x: $cx, y: $cy, area: $area",
-                        Point(10.0, 50.0),
-                        0,
-                        1.0,
-                        Scalar(255.0, 0.0, 0.0),
-                        2
-                    )
-                }
-            }
+//            // Apply skin color segmentation (you may need to adjust these values)
+//            val hsvFrame = Mat()
+//            Imgproc.cvtColor(originalFrame, hsvFrame, Imgproc.COLOR_BGR2HSV)
+//
+//            val lowerSkin = Scalar(lowerSkinH.toDouble(), lowerSkinS.toDouble(), lowerSkinV.toDouble())
+//            val upperSkin = Scalar(upperSkinH.toDouble(), upperSkinS.toDouble(), upperSkinV.toDouble())
+//            val mask = Mat()
+//            Core.inRange(hsvFrame, lowerSkin, upperSkin, mask)
+//
+//            // blur the mask to reduce noise
+//            val blur = Mat()
+//            Imgproc.blur(mask, blur, Size(2.0, 2.0))
+//
+//            // get threshold image
+//            val thresholdFrame = Mat()
+//            Imgproc.threshold(mask, thresholdFrame, thresh.toDouble(), maxval.toDouble(), Imgproc.THRESH_BINARY)
+//
+//            // Find contours in the mask
+//            val contours = ArrayList<MatOfPoint>()
+//            val hierarchy = Mat()
+//            Imgproc.findContours(
+//                thresholdFrame,
+//                contours,
+//                hierarchy,
+//                Imgproc.RETR_EXTERNAL,
+//                Imgproc.CHAIN_APPROX_SIMPLE
+//            )
+//
+//            // Find the largest contour (assuming it's the hand)
+//            var minArea = 0.0
+//            var maxContour: MatOfPoint? = null
+//            for (contour in contours) {
+//                val area = Imgproc.contourArea(contour)
+//                if (area > minArea) {
+//                    minArea = area
+//                    maxContour = contour
+//                }
+//            }
+//
+//            // Draw a bounding box around the hand
+//            val drawFrame = Mat()
+//            originalFrame.copyTo(drawFrame)
+//
+//            if (maxContour != null) {
+//                val area = maxContour.size().area()
+//                if (area > 350) {   // min area
+//                    val boundingRect = Imgproc.boundingRect(maxContour)
+//                    Imgproc.rectangle(
+//                        drawFrame,
+//                        boundingRect.tl(),
+//                        boundingRect.br(),
+//                        Scalar(0.0, 255.0, 0.0),
+//                        2
+//                    )
+//
+//                    // Compute the centroid of the largest contour
+//                    val moments = Imgproc.moments(maxContour)
+//                    val cx = (moments.m10 / moments.m00).toInt()
+//                    val cy = (moments.m01 / moments.m00).toInt()
+//
+//                    // Draw a circle with the center as the centroid and the radius based on the bounding rectangle's diagonal length
+////            val radius = Math.sqrt((boundingRect.width * boundingRect.width + boundingRect.height * boundingRect.height) / 2.0).toInt()
+//                    Imgproc.circle(
+//                        drawFrame,
+//                        Point(cx.toDouble(), cy.toDouble()),
+//                        10,
+//                        Scalar(0.0, 255.0, 0.0),
+//                        2
+//                    )
+//
+//                    // initialize sketch (if not already initialized)
+//                    if (sketch == null) {
+//                        sketch = Mat(originalFrame.size(), originalFrame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
+//                    }
+//
+//                    // initialize prevpos (if not already initialized)
+//                    if (prevpos == null) {
+//                        prevpos = Point(0.0, 0.0)
+//                    }
+//
+//                    // Draw line from previous point to current point
+//                    Imgproc.line(
+//                        sketch,
+//                        prevpos,
+//                        Point(cx.toDouble(), cy.toDouble()),
+//                        Scalar(0.0, 255.0, 0.0),
+//                        2
+//                    )
+//                    prevpos = Point(cx.toDouble(), cy.toDouble())
+//
+//                    // draw text on screen
+//                    Imgproc.putText(
+//                        drawFrame,
+//                        "x: $cx, y: $cy, area: $area",
+//                        Point(10.0, 50.0),
+//                        0,
+//                        1.0,
+//                        Scalar(255.0, 0.0, 0.0),
+//                        2
+//                    )
+//                }
+//            }
 
             // TODO: draw sketch rnn points on screen
             for (point in sketchRNNPoints) {
@@ -504,28 +503,32 @@ class DrawViewModel : ViewModel() {
 
             // Merge the sketch with the frame
             //   (!) Adjust alpha (0.7 in this case) as needed
-            if (sketch != null) {
-                Core.addWeighted(drawFrame, 1.0, sketch, 0.7, 0.0, drawFrame)
-            }
+//            if (sketch != null) {
+//                Core.addWeighted(drawFrame, 1.0, sketch, 0.7, 0.0, drawFrame)
+//            }
             if (sketch2 != null) {
                 Core.addWeighted(handsFrame, 1.0, sketch2, 0.7, 0.0, handsFrame)
             }
 
-            val thresholdBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-            Utils.matToBitmap(thresholdFrame, thresholdBitmap)
+//            val thresholdBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+//            Utils.matToBitmap(thresholdFrame, thresholdBitmap)
             val handsBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
             Utils.matToBitmap(handsFrame, handsBitmap)
-            val drawBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
-            Utils.matToBitmap(drawFrame, drawBitmap)
+//            val drawBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+//            Utils.matToBitmap(drawFrame, drawBitmap)
 
             // run on UI thread
             activity?.runOnUiThread {
-                originalImage = bitmap
-                thresholdImage = thresholdBitmap
+//                originalImage = bitmap
+//                thresholdImage = thresholdBitmap
                 handsImage = handsBitmap
-                outputImage = drawBitmap
+//                outputImage = drawBitmap
             }
         }
+    }
+
+    fun clearSketch() {
+        sketch2 = null
     }
     // endregion
 }

@@ -23,14 +23,19 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -111,11 +116,11 @@ fun DrawViewComposable(
             }
         }
     ) {
-        val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-
-        if (mode == Mode.CAMERA && !cameraPermissionState.status.isGranted) {
-            NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
-        } else {
+//        val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+//
+//        if (mode == Mode.CAMERA && !cameraPermissionState.status.isGranted) {
+//            NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
+//        } else {
             if (mode == Mode.CAMERA) {
                 // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
                 // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
@@ -156,10 +161,28 @@ fun DrawViewComposable(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(LightBlue)
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = 20.dp, end = 20.dp),
-                contentAlignment = Alignment.TopCenter
+//                    .verticalScroll(rememberScrollState()),
+//                contentAlignment = Alignment.TopCenter
             ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+//                        .defaultMinSize(minHeight = 300.dp) // Set the minimum height here
+                        .border(
+                            border = BorderStroke(
+                                2.dp,
+                                MaterialTheme.colorScheme.primary
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        bitmap = viewModel.handsImage.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+
                 Column {
                     Column(
                         // set spacing between items
@@ -168,148 +191,160 @@ fun DrawViewComposable(
                             .fillMaxWidth()
                             .padding(top = 20.dp, bottom = 20.dp)
                     ) {
-                        Text(
-                            text = "Draw",
-                            fontSize = 30.sp
-                        )
+                        Row(
+                            modifier = Modifier.padding(start = 20.dp, end = 20.dp)
+                        ) {
+                            Text(
+                                text = "Draw",
+                                fontSize = 30.sp
+                            )
 
-                        if (mode == Mode.VIDEO) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(300.dp)
-                                    .background(color = Color.Black),
-                                contentAlignment = Alignment.Center
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            Button(
+                                onClick = viewModel::clearSketch
                             ) {
-                                val context = LocalContext.current
-                                val resources: Resources = context.resources
-                                val exoPlayer =
-                                    ExoPlayer.Builder(context).build()
-
-                                val resId = resources.getIdentifier(
-                                    "handw",
-                                    "raw",
-                                    context.packageName
-                                )
-                                val uri =
-                                    Uri.parse("android.resource://${context.packageName}/$resId")
-                                val mediaItem = MediaItem.fromUri(uri)
-                                exoPlayer.setMediaItem(mediaItem)
-
-                                val playerView = StyledPlayerView(context)
-                                playerView.player = exoPlayer
-
-                                AndroidView(factory = { playerView }) {
-                                    exoPlayer.prepare()
-                                    exoPlayer.playWhenReady = true
-                                    exoPlayer.repeatMode =
-                                        ExoPlayer.REPEAT_MODE_ALL
-                                    // hide controls
-                                    playerView.useController = true
-
-                                    // get frame callback
-                                    exoPlayer.setVideoFrameMetadataListener { presentationTimeUs, releaseTimeNs, format, mediaFormat ->
-                                        viewModel.handleVideoFrame(
-                                            presentationTimeUs
-                                        )
-                                        // run in background
-//                                                    CoroutineScope(Dispatchers.IO).launch {
-//                                                    GlobalScope.launch {
-//                                                        val currentFrame = getVideoFrame(
-//                                                            context,
-//                                                            uri,
-//                                                            presentationTimeUs
-//                                                        )
-
-//                                                        if (currentFrame != null) {
-//                                                            viewModel.handleImage(currentFrame)
-//                                                        }
-//                                                    }
-                                    }
-                                }
+                                Text(text = "Clear Sketch")
                             }
                         }
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp)
-                                .border(
-                                    border = BorderStroke(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.primary
-                                    ),
-                                    shape = MaterialTheme.shapes.medium
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                bitmap = viewModel.originalImage.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp)
-                                .border(
-                                    border = BorderStroke(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.primary
-                                    ),
-                                    shape = MaterialTheme.shapes.medium
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                bitmap = viewModel.thresholdImage.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp)
-                                .border(
-                                    border = BorderStroke(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.primary
-                                    ),
-                                    shape = MaterialTheme.shapes.medium
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                bitmap = viewModel.handsImage.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp)
-                                .border(
-                                    border = BorderStroke(
-                                        2.dp,
-                                        MaterialTheme.colorScheme.primary
-                                    ),
-                                    shape = MaterialTheme.shapes.medium
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Image(
-                                bitmap = viewModel.outputImage.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
-                    }
+//                        if (mode == Mode.VIDEO) {
+//                            Box(
+//                                modifier = Modifier
+//                                    .fillMaxWidth()
+//                                    .height(300.dp)
+//                                    .background(color = Color.Black),
+//                                contentAlignment = Alignment.Center
+//                            ) {
+//                                val context = LocalContext.current
+//                                val resources: Resources = context.resources
+//                                val exoPlayer =
+//                                    ExoPlayer.Builder(context).build()
+//
+//                                val resId = resources.getIdentifier(
+//                                    "handw",
+//                                    "raw",
+//                                    context.packageName
+//                                )
+//                                val uri =
+//                                    Uri.parse("android.resource://${context.packageName}/$resId")
+//                                val mediaItem = MediaItem.fromUri(uri)
+//                                exoPlayer.setMediaItem(mediaItem)
+//
+//                                val playerView = StyledPlayerView(context)
+//                                playerView.player = exoPlayer
+//
+//                                AndroidView(factory = { playerView }) {
+//                                    exoPlayer.prepare()
+//                                    exoPlayer.playWhenReady = true
+//                                    exoPlayer.repeatMode =
+//                                        ExoPlayer.REPEAT_MODE_ALL
+//                                    // hide controls
+//                                    playerView.useController = true
+//
+//                                    // get frame callback
+//                                    exoPlayer.setVideoFrameMetadataListener { presentationTimeUs, releaseTimeNs, format, mediaFormat ->
+//                                        viewModel.handleVideoFrame(
+//                                            presentationTimeUs
+//                                        )
+//                                        // run in background
+////                                                    CoroutineScope(Dispatchers.IO).launch {
+////                                                    GlobalScope.launch {
+////                                                        val currentFrame = getVideoFrame(
+////                                                            context,
+////                                                            uri,
+////                                                            presentationTimeUs
+////                                                        )
+//
+////                                                        if (currentFrame != null) {
+////                                                            viewModel.handleImage(currentFrame)
+////                                                        }
+////                                                    }
+//                                    }
+//                                }
+//                            }
+//                        }
+//
+//                        Box(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .height(300.dp)
+//                                .border(
+//                                    border = BorderStroke(
+//                                        2.dp,
+//                                        MaterialTheme.colorScheme.primary
+//                                    ),
+//                                    shape = MaterialTheme.shapes.medium
+//                                ),
+//                            contentAlignment = Alignment.Center
+//                        ) {
+//                            Image(
+//                                bitmap = viewModel.originalImage.asImageBitmap(),
+//                                contentDescription = null,
+//                                modifier = Modifier.fillMaxSize()
+//                            )
+//                        }
+//
+//                        Box(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .height(300.dp)
+//                                .border(
+//                                    border = BorderStroke(
+//                                        2.dp,
+//                                        MaterialTheme.colorScheme.primary
+//                                    ),
+//                                    shape = MaterialTheme.shapes.medium
+//                                ),
+//                            contentAlignment = Alignment.Center
+//                        ) {
+//                            Image(
+//                                bitmap = viewModel.thresholdImage.asImageBitmap(),
+//                                contentDescription = null,
+//                                modifier = Modifier.fillMaxSize()
+//                            )
+//                        }
+//
+//                        Box(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .height(300.dp)
+//                                .border(
+//                                    border = BorderStroke(
+//                                        2.dp,
+//                                        MaterialTheme.colorScheme.primary
+//                                    ),
+//                                    shape = MaterialTheme.shapes.medium
+//                                ),
+//                            contentAlignment = Alignment.Center
+//                        ) {
+//                            Image(
+//                                bitmap = viewModel.handsImage.asImageBitmap(),
+//                                contentDescription = null,
+//                                modifier = Modifier.fillMaxSize()
+//                            )
+//                        }
+//
+//                        Box(
+//                            modifier = Modifier
+//                                .fillMaxWidth()
+//                                .height(300.dp)
+//                                .border(
+//                                    border = BorderStroke(
+//                                        2.dp,
+//                                        MaterialTheme.colorScheme.primary
+//                                    ),
+//                                    shape = MaterialTheme.shapes.medium
+//                                ),
+//                            contentAlignment = Alignment.Center
+//                        ) {
+//                            Image(
+//                                bitmap = viewModel.outputImage.asImageBitmap(),
+//                                contentDescription = null,
+//                                modifier = Modifier.fillMaxSize()
+//                            )
+//                        }
+//                    }
                 }
             }
         }
