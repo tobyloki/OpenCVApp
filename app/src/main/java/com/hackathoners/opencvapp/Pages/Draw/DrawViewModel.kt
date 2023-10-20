@@ -67,6 +67,9 @@ class DrawViewModel : ViewModel() {
     private var prevpos : Point? = null
     private var sketch : Mat? = null
 
+    private var prevpos2 : Point? = null
+    private var sketch2 : Mat? = null
+
     /** Blocking ML operations are performed using this executor */
     private lateinit var backgroundExecutor: ExecutorService
     private lateinit var gestureRecognizerHelper: GestureRecognizerHelper
@@ -245,6 +248,7 @@ class DrawViewModel : ViewModel() {
         }
     }
 
+    private var liftedFinger = true
     fun handleFrame(bitmap: Bitmap) {
         if(this::gestureRecognizerHelper.isInitialized) {
             gestureRecognizerHelper.recognizeLiveStream(
@@ -298,11 +302,6 @@ class DrawViewModel : ViewModel() {
                 }
             }
 
-            // initialize sketch (if not already initialized)
-            if (sketch == null) {
-                sketch = Mat(originalFrame.size(), originalFrame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
-            }
-
             // Draw a bounding box around the hand
             val drawFrame = Mat()
             originalFrame.copyTo(drawFrame)
@@ -333,6 +332,11 @@ class DrawViewModel : ViewModel() {
                         Scalar(0.0, 255.0, 0.0),
                         2
                     )
+
+                    // initialize sketch (if not already initialized)
+                    if (sketch == null) {
+                        sketch = Mat(originalFrame.size(), originalFrame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
+                    }
 
                     // initialize prevpos (if not already initialized)
                     if (prevpos == null) {
@@ -392,22 +396,22 @@ class DrawViewModel : ViewModel() {
                 val scaleFactor: Double = 1.0
 
                 // write text on screen that says gesture
+                var category: Category? = null
                 if (gestureCategories.isNotEmpty()) {
                     val categories = gestureCategories.first()
                     val sortedCategories = categories.sortedByDescending { it.score() }
                     val firstCategory = sortedCategories.first()
+                    category = firstCategory
 
-                    if (gestureCategories.isNotEmpty()) {
-                        Imgproc.putText(
-                            handsFrame,
-                            "${firstCategory.categoryName()} - ${String.format("%.2f", firstCategory.score())}",
-                            Point(10.0, 50.0),
-                            0,
-                            1.0,
-                            Scalar(255.0, 0.0, 0.0),
-                            2
-                        )
-                    }
+                    Imgproc.putText(
+                        handsFrame,
+                        "${firstCategory.categoryName()} - ${String.format("%.2f", firstCategory.score())}",
+                        Point(10.0, 50.0),
+                        0,
+                        1.0,
+                        Scalar(255.0, 0.0, 0.0),
+                        2
+                    )
                 }
 
                 gestureRecognizerResults.let { gestureRecognizerResult ->
@@ -415,10 +419,40 @@ class DrawViewModel : ViewModel() {
 //                    for (landmark in landmarks) {
                     if (landmarks.isNotEmpty()) {
                         val landmark = gestureRecognizerResult.landmarks()[0]
-                        Timber.i("count: ${landmark.count()}")
+//                        Timber.i("count: ${landmark.count()}")
                         for (i in 0 until landmark.count()) {
                             val normalizedLandmark = landmark[i]
                             val isIndexFinger = i == 8
+
+                            if (isIndexFinger) {
+                                if (category != null && category.categoryName() == "Pointing_Up" && category.score() > 0.5) {
+                                    val x = normalizedLandmark.x() * imageWidth * scaleFactor
+                                    val y = normalizedLandmark.y() * imageHeight * scaleFactor
+                                    val point = Point(x, y)
+
+                                    // initialize sketch2 (if not already initialized)
+                                    if (sketch2 == null) {
+                                        sketch2 = Mat(originalFrame.size(), originalFrame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
+                                    }
+
+                                    if (prevpos2 == null || liftedFinger) {
+                                        prevpos2 = point
+                                    }
+                                    liftedFinger = false
+
+                                    // Draw line from previous point to current point
+                                    Imgproc.line(
+                                        sketch2,
+                                        prevpos2,
+                                        point,
+                                        Scalar(0.0, 255.0, 0.0),
+                                        2
+                                    )
+                                    prevpos2 = point
+                                } else {
+                                    liftedFinger = true
+                                }
+                            }
 
                             // draw points on screen
                             Imgproc.circle(
@@ -470,7 +504,12 @@ class DrawViewModel : ViewModel() {
 
             // Merge the sketch with the frame
             //   (!) Adjust alpha (0.7 in this case) as needed
-            Core.addWeighted(drawFrame, 1.0, sketch, 0.7, 0.0, drawFrame)
+            if (sketch != null) {
+                Core.addWeighted(drawFrame, 1.0, sketch, 0.7, 0.0, drawFrame)
+            }
+            if (sketch2 != null) {
+                Core.addWeighted(handsFrame, 1.0, sketch2, 0.7, 0.0, handsFrame)
+            }
 
             val thresholdBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
             Utils.matToBitmap(thresholdFrame, thresholdBitmap)
