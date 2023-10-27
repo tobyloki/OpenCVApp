@@ -48,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -57,8 +58,10 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
@@ -87,7 +90,7 @@ class DrawView : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun DrawViewComposable(
     activity: ComponentActivity = ComponentActivity(),
@@ -116,12 +119,12 @@ fun DrawViewComposable(
             }
         }
     ) {
-//        val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-//
-//        if (mode == Mode.CAMERA && !cameraPermissionState.status.isGranted) {
-//            NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
-//        } else {
-            if (mode == Mode.CAMERA) {
+        if (mode == Mode.CAMERA) {
+            val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+
+            if (!cameraPermissionState.status.isGranted) {
+                NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
+            } else {
                 // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
                 // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
                 val cameraController: LifecycleCameraController =
@@ -156,57 +159,58 @@ fun DrawViewComposable(
                     }
                 )
             }
+        }
 
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(LightBlue)
+//                    .verticalScroll(rememberScrollState()),
+//                contentAlignment = Alignment.TopCenter
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(LightBlue)
-//                    .verticalScroll(rememberScrollState()),
-//                contentAlignment = Alignment.TopCenter
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
 //                        .defaultMinSize(minHeight = 300.dp) // Set the minimum height here
-                        .border(
-                            border = BorderStroke(
-                                2.dp,
-                                MaterialTheme.colorScheme.primary
-                            )
-                        ),
-                    contentAlignment = Alignment.Center
+                    .border(
+                        border = BorderStroke(
+                            2.dp,
+                            MaterialTheme.colorScheme.primary
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    bitmap = viewModel.handsImage.asImageBitmap(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            Column {
+                Column(
+                    // set spacing between items
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 20.dp, bottom = 20.dp)
                 ) {
-                    Image(
-                        bitmap = viewModel.handsImage.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-
-                Column {
-                    Column(
-                        // set spacing between items
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 20.dp, bottom = 20.dp)
+                    Row(
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(start = 20.dp, end = 20.dp)
+                        Text(
+                            text = "Draw",
+                            fontSize = 30.sp
+                        )
+
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        Button(
+                            onClick = viewModel::clearSketch
                         ) {
-                            Text(
-                                text = "Draw",
-                                fontSize = 30.sp
-                            )
-
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            Button(
-                                onClick = viewModel::clearSketch
-                            ) {
-                                Text(text = "Clear Sketch")
-                            }
+                            Text(text = "Clear Sketch")
                         }
+                    }
 
 //                        if (mode == Mode.VIDEO) {
 //                            Box(
@@ -344,7 +348,6 @@ fun DrawViewComposable(
 //                                modifier = Modifier.fillMaxSize()
 //                            )
 //                        }
-//                    }
                 }
             }
         }
