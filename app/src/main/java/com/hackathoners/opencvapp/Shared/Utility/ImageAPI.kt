@@ -18,13 +18,14 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 import android.content.Context
+import com.hackathoners.opencvapp.BuildConfig
 
 
 class ImageAPI {
     companion object {
 
         private const val endpoint = "https://clipdrop-api.co/sketch-to-image/v1/sketch-to-image"
-        private const val APIKey = "APIKEY"
+        private const val APIKey = BuildConfig.CLIPDROP_API_KEY
         private const val contentType = "multipart/form-data"
         private lateinit var context: Context
 

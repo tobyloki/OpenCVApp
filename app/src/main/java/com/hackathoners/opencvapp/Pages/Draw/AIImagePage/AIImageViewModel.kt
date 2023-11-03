@@ -26,9 +26,19 @@ class AIImageViewModel : ViewModel() {
         Timber.i("onCreate")
         val bitmap = BitmapFactory.decodeResource(activity?.resources, R.drawable.apple)
 
+        fun bitmapToFile(bitmap: Bitmap, fileName: String): File {
+            val file = File(fileName)
+            val outStream = FileOutputStream(file)
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outStream)
+            outStream.close()
+            return file
+        }
+
+        val file: File = bitmapToFile(bitmap, "fds.png")
+
         // TODO: Change the bitmap to File format
 //        val byteArray = convertBitmapToByteArray(bitmap, Bitmap.CompressFormat.PNG, 100)
-//        ImageAPI.POST(byteArray,"apple", "cinematic")
+        ImageAPI.POST(file,"apple", "cinematic")
     }
 
     fun onResume() {

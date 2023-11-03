@@ -2,6 +2,9 @@ plugins {
     id 'com.android.application'
     id 'org.jetbrains.kotlin.android'
     id 'de.undercouch.download'
+
+    // secret api key plugin
+    id "com.google.android.libraries.mapsplatform.secrets-gradle-plugin"
 }
 
 android {
@@ -37,6 +40,7 @@ android {
     buildFeatures {
         compose true
         viewBinding true
+        buildConfig true
     }
     composeOptions {
         kotlinCompilerExtensionVersion '1.4.3'
