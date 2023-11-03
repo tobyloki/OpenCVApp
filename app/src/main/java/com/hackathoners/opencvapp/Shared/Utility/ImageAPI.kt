@@ -2,6 +2,7 @@ package com.hackathoners.opencvapp.Shared.Utility
 
 import android.media.Image
 import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -16,37 +17,36 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import android.content.Context
 
 
 class ImageAPI {
     companion object {
 
         private const val endpoint = "https://clipdrop-api.co/sketch-to-image/v1/sketch-to-image"
-        private const val APIKey = "69892020177e3d5c9bc27f74916085ff8572b55c7083cf4531f2a3a3c4becccc464fa7136257005833e801228bfc9a55"
+        private const val APIKey = "APIKEY"
         private const val contentType = "multipart/form-data"
+        private lateinit var context: Context
 
         // save the Ai generated image to the directory
-        // TODO: change the savePath
         fun saveImage(response: Response?): Boolean {
             if (response == null) return false
 
             val responseBody = response.body ?: return false
-            val savePath = "/raw"
+            val imageBytes = responseBody?.bytes()
             try {
-                val file = File(savePath)
-                val inputStream = responseBody.byteStream()
-                val outputStream = FileOutputStream(file)
-                val buffer = ByteArray(4096)
-                var bytesRead: Int
 
-                while (inputStream.read(buffer).also {bytesRead = it} != -1) {
-                    outputStream.write(buffer, 0, bytesRead)
+                if (imageBytes != null) {
+                    // Store the file in the internal storage
+                    val fileName = "generated_image.png"
+                    val file = File(context.filesDir, fileName) // Path
+                    val outputStream = FileOutputStream(file)
+                    outputStream.write(imageBytes)
+                    outputStream.close()
+                    return true
+                } else {
+                    return false
                 }
-
-                outputStream.close()
-                inputStream.close()
-
-                return true
             } catch (e: IOException) {
                 e.printStackTrace()
                 return false
@@ -60,16 +60,13 @@ class ImageAPI {
             try {
                 Timber.i("Sending POST request for generating AI Image to: $endpoint")
 
-                val prompt: String = "$name, $style"
-
+                val prompt = "$name, $style"
                 val fileBody = file.asRequestBody("image/*".toMediaTypeOrNull())
-
-                    // data.toRequestBody("application/json".toMediaTypeOrNull())
 
                 val requestBody = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart("prompt", prompt)
-                    .addFormDataPart("sketch_file", file.name, fileBody)
+                    .addFormDataPart("sketch_file", "filename",fileBody)
                     .build()
 
                 val client: OkHttpClient = OkHttpClient.Builder()
@@ -77,6 +74,7 @@ class ImageAPI {
                     .writeTimeout(15, TimeUnit.SECONDS)
                     .readTimeout(15, TimeUnit.SECONDS)
                     .build()
+
 
                 val request = Request.Builder()
                     .url(endpoint)
@@ -87,7 +85,7 @@ class ImageAPI {
 
                 client.newCall(request).execute().use { response ->
                     if (!response.isSuccessful) {
-                        saveImage(response)
+                        saveImage(response) // The file should be saved in the internal storage I think
                     }
                     throw IOException("Unexpected code $response")
                     // Get response
