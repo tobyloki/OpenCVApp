@@ -72,21 +72,8 @@ fun HomeViewComposable(
     )
 
     BaseView(
-        navigationIcon = {
-            run {
-                IconButton(onClick = {
-                    activity.finish()
-                }) {
-                    Icon(
-                        imageVector = Icons.Filled.ArrowBack,
-                        contentDescription = null
-                    )
-                }
-            }
-        },
         actions = {
             OverflowMenu { dismissMenu ->
-
                 DropdownMenuItem(
                     onClick = {
                         viewModel.handleBtnClick()
@@ -169,6 +156,11 @@ fun HomeViewComposable(
                 onClick = viewModel::goToCalibrationPage
             ) {
                 Text(text = "Go to Calibration page")
+            }
+            Button(
+                onClick = viewModel::goToGalleryPage
+            ) {
+                Text(text = "Go to Gallery page")
             }
             Box(
                 modifier = Modifier

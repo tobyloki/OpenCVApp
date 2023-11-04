@@ -14,6 +14,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.hackathoners.opencvapp.Shared.ui.theme.Background
 import com.hackathoners.opencvapp.Shared.ui.theme.MyApplicationTheme
 import com.hackathoners.opencvapp.Shared.ui.theme.Purple80
 
@@ -35,7 +36,7 @@ fun BaseView(
                 topBar = {
                     TopAppBar(
                         title = { Text(text = title) },
-                        colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Purple80),
+                        colors = TopAppBarDefaults.smallTopAppBarColors(containerColor = Background),
                         navigationIcon = navigationIcon,
                         actions = actions
                     )

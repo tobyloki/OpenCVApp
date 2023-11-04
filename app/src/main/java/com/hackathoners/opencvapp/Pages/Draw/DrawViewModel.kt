@@ -21,16 +21,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
 import org.opencv.android.Utils
 import org.opencv.core.Core
 import org.opencv.core.Mat
-import org.opencv.core.MatOfPoint
 import org.opencv.core.Point
 import org.opencv.core.Scalar
-import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import timber.log.Timber
 import java.util.concurrent.ExecutorService
@@ -49,6 +48,10 @@ class DrawViewModel : ViewModel() {
 //    var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var handsImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 //    var outputImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+
+    var showSaveAlert by mutableStateOf(false)
+    var showSavingAlert by mutableStateOf(false)
+    var showFinishedSavingAlert by mutableStateOf(false)
 
     private val viewModelJob = Job()
     private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Default)
@@ -529,6 +532,27 @@ class DrawViewModel : ViewModel() {
 
     fun clearSketch() {
         sketch2 = null
+    }
+    // endregion
+
+    // region Menu actions
+    fun saveImage() {
+        showSaveAlert = true
+    }
+
+    fun confirmSaveImage() {
+        showSavingAlert = true
+        coroutineScope.launch {
+            // TODO: make request here instead of delay
+            delay(1000)
+
+            showSavingAlert = false
+            showFinishedSavingAlert = true
+        }
+    }
+
+    fun goToIndividualGalleryPage() {
+        // TODO: implement
     }
     // endregion
 }

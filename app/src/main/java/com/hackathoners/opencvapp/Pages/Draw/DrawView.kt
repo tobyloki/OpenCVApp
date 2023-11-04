@@ -31,16 +31,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -50,6 +56,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,9 +75,13 @@ import com.google.android.exoplayer2.MediaItem
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.hackathoners.opencvapp.Extensions.flipBitmap
 import com.hackathoners.opencvapp.Pages.Draw.NoCameraPermissionScreen.NoCameraPermissionScreen
+import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
 import com.hackathoners.opencvapp.Shared.Views.BaseView
+import com.hackathoners.opencvapp.Shared.ui.theme.Background
 import com.hackathoners.opencvapp.Shared.ui.theme.LightBlue
+import com.hackathoners.opencvapp.Shared.ui.theme.LightGreen
+import com.hackathoners.opencvapp.Shared.ui.theme.Purple
 import com.hackathoners.opencvapp.rotateBitmap
 import timber.log.Timber
 
@@ -105,7 +116,73 @@ fun DrawViewComposable(
         onPause = viewModel::onPause
     )
 
+    if (viewModel.showSaveAlert)
+    {
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icons.Filled.Send
+            },
+            title = {
+                Text(text = "Save Artwork")
+            },
+            text = { Text(text = "Let AI auto generate a picture for you based on your sketch.") },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.showSaveAlert = false
+                    }) {
+                    Text(text = "Dismiss")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.showSaveAlert = false
+                        viewModel.confirmSaveImage()
+                    }) {
+                    Text(text = "Confirm")
+                }
+            }
+        )
+    }
+
+    if (viewModel.showSavingAlert)
+    {
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icons.Filled.Send
+            },
+            title = { Text(text = "Generating...") },
+            text = { Text(text = "The artwork is being generated. Please wait a moment.") },
+            confirmButton = {}
+        )
+    }
+
+    if (viewModel.showFinishedSavingAlert)
+    {
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icons.Filled.Send
+            },
+            title = { Text(text = "Artwork Created") },
+            text = { Text(text = "The artwork has finished generating and is now saved in your gallery.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.showFinishedSavingAlert = false
+                        viewModel.goToIndividualGalleryPage()
+                    }) {
+                    Text(text = "Finish")
+                }
+            }
+        )
+    }
+
     BaseView(
+        title = "Draw",
         navigationIcon = {
             run {
                 IconButton(onClick = {
@@ -115,6 +192,20 @@ fun DrawViewComposable(
                         imageVector = Icons.Filled.ArrowBack,
                         contentDescription = null
                     )
+                }
+            }
+        },
+        actions = {
+            run {
+                TextButton(
+                    onClick = viewModel::saveImage,
+                    colors = ButtonDefaults.buttonColors(
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(imageVector = Icons.Filled.Send, contentDescription = null, tint = LightGreen)
+                    Spacer(modifier = Modifier.width(10.dp)) // Add space between icon and text
+                    Text(text = "Save")
                 }
             }
         }
@@ -164,7 +255,7 @@ fun DrawViewComposable(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(LightBlue)
+                .background(Background)
 //                    .verticalScroll(rememberScrollState()),
 //                contentAlignment = Alignment.TopCenter
         ) {
@@ -198,15 +289,14 @@ fun DrawViewComposable(
                     Row(
                         modifier = Modifier.padding(start = 20.dp, end = 20.dp)
                     ) {
-                        Text(
-                            text = "Draw",
-                            fontSize = 30.sp
-                        )
-
                         Spacer(modifier = Modifier.weight(1f))
 
                         Button(
-                            onClick = viewModel::clearSketch
+                            onClick = viewModel::clearSketch,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            )
                         ) {
                             Text(text = "Clear Sketch")
                         }

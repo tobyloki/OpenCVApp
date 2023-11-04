@@ -2,6 +2,10 @@ package com.hackathoners.opencvapp.Shared.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+val Background = Color(0xFF262626)
+val Purple = Color(0xFF2E1542)
+val LightGreen = Color(0xFFA0FFAF)
+
 val Purple80 = Color(0xFFD0BCFF)
 val PurpleGrey80 = Color(0xFFCCC2DC)
 val Pink80 = Color(0xFFEFB8C8)

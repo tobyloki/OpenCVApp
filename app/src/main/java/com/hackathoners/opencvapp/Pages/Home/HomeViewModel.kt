@@ -15,6 +15,7 @@ import androidx.lifecycle.ViewModel
 import com.hackathoners.opencvapp.Pages.Draw.AIImagePage.AIImageView
 import com.hackathoners.opencvapp.Pages.Draw.CalibrationPage.CalibrationPageView
 import com.hackathoners.opencvapp.Pages.Draw.DrawView
+import com.hackathoners.opencvapp.Pages.Gallery.GalleryView
 import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Utility.ImageAPI
 import kotlinx.coroutines.CoroutineScope
@@ -115,6 +116,11 @@ class HomeViewModel : ViewModel() {
 
     fun goToImagePage() {
         val intent = Intent(activity, AIImageView::class.java)
+        activity?.startActivity(intent)
+    }
+
+    fun goToGalleryPage() {
+        val intent = Intent(activity, GalleryView::class.java)
         activity?.startActivity(intent)
     }
 
