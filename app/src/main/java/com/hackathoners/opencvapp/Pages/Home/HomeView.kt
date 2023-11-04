@@ -125,6 +125,22 @@ fun HomeViewComposable(
                             contentDescription = null
                         )
                     }
+
+                )
+
+                DropdownMenuItem(
+                    onClick = {
+                        viewModel.goToImagePage()
+                        dismissMenu()
+                    },
+                    text = { Text(text = "Go to Image page") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.ArrowForward,
+                            contentDescription = null
+                        )
+                    }
+
                 )
             }
         }
@@ -146,6 +162,9 @@ fun HomeViewComposable(
             ) {
                 Text(text = "Go to draw page")
             }
+            Button (onClick = viewModel::goToImagePage) {
+                Text(text = "Go to Image page")
+            }
             Button(
                 onClick = viewModel::goToCalibrationPage
             ) {
@@ -164,7 +183,8 @@ fun HomeViewComposable(
                 Image(
                     bitmap = viewModel.image.asImageBitmap(),
                     contentDescription = null,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier
+                        .fillMaxSize()
                         .padding(15.dp)
                 )
             }
