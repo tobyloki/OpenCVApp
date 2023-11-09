@@ -2,6 +2,7 @@ package com.hackathoners.opencvapp.Pages.Draw
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.res.Resources
 import android.graphics.Bitmap
 import android.net.Uri
@@ -45,10 +46,15 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,6 +63,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -94,27 +101,28 @@ class DrawView : ComponentActivity() {
         super.onCreate(savedInstanceState)
         viewModel.initialize(this)
         setContent {
-            DrawViewComposable(this, mode = Mode.CAMERA)
+            DrawViewComposable(mode = Mode.CAMERA)
         }
-
-        Timber.i("on create")
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun DrawViewComposable(
-    activity: ComponentActivity = ComponentActivity(),
+    previewMode: Boolean = LocalInspectionMode.current,
+    activity: Activity = (LocalContext.current as? Activity) ?: Activity(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     viewModel: DrawViewModel = viewModel(),
-    mode: Mode = Mode.VIDEO
+    mode: Mode = Mode.CAMERA
     ) {
-    PerformOnLifecycle(
-        lifecycleOwner = lifecycleOwner,
-        onCreate = viewModel::onCreate,
-        onResume = viewModel::onResume,
-        onPause = viewModel::onPause
-    )
+    if (!previewMode) {
+        PerformOnLifecycle(
+            lifecycleOwner = lifecycleOwner,
+            onCreate = viewModel::onCreate,
+            onResume = viewModel::onResume,
+            onPause = viewModel::onPause
+        )
+    }
 
     if (viewModel.showSaveAlert)
     {
@@ -124,13 +132,60 @@ fun DrawViewComposable(
                 Icons.Filled.Send
             },
             title = {
-                Text(text = "Save Artwork")
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(text = "Save Artwork")
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                border = BorderStroke(
+                                    2.dp,
+                                    MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            .background(color = Background),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Image(
+                            bitmap = viewModel.rawSketchImage.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
             },
-            text = { Text(text = "Let AI auto generate a picture for you based on your sketch.") },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(text = "Let AI auto generate a picture for you based on your sketch. Enter a prompt that describes your sketch.")
+
+                    val maxChar = 5000
+                    Column {
+                        OutlinedTextField(
+                            value = viewModel.prompt,
+                            onValueChange = {
+                                viewModel.prompt = it.take(maxChar)
+                            },
+                            label = { Text("Prompt") },
+                            singleLine = true
+                        )
+                        Text(
+                            text = "${viewModel.prompt.length} / $maxChar",
+                            textAlign = TextAlign.End,
+                            modifier = Modifier.fillMaxWidth().padding(end = 16.dp)
+                        )
+                    }
+                }
+            },
             dismissButton = {
                 TextButton(
                     onClick = {
                         viewModel.showSaveAlert = false
+                        viewModel.saving = false
                     }) {
                     Text(text = "Dismiss")
                 }
@@ -157,6 +212,26 @@ fun DrawViewComposable(
             title = { Text(text = "Generating...") },
             text = { Text(text = "The artwork is being generated. Please wait a moment.") },
             confirmButton = {}
+        )
+    }
+
+    if (viewModel.showErrorAlert)
+    {
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icons.Filled.Send
+            },
+            title = { Text(text = "Error") },
+            text = { Text(text = "An unexpected error occurred. Please try again later.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.showErrorAlert = false
+                    }) {
+                    Text(text = "Close")
+                }
+            }
         )
     }
 
@@ -211,11 +286,17 @@ fun DrawViewComposable(
         }
     ) {
         if (mode == Mode.CAMERA) {
-            val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+            var permissionGranted by remember { mutableStateOf(false) }
+            if (!previewMode) {
+                val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+                permissionGranted = cameraPermissionState.status.isGranted
 
-            if (!cameraPermissionState.status.isGranted) {
-                NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
-            } else {
+                if (!permissionGranted) {
+                    NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
+                }
+            }
+
+            if (permissionGranted) {
                 // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
                 // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
                 val cameraController: LifecycleCameraController =

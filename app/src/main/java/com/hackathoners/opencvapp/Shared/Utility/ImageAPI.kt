@@ -19,55 +19,30 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import android.content.Context
 import com.hackathoners.opencvapp.BuildConfig
+import com.hackathoners.opencvapp.R
 
 
 class ImageAPI {
     companion object {
-
         private const val endpoint = "https://clipdrop-api.co/sketch-to-image/v1/sketch-to-image"
         private const val APIKey = BuildConfig.CLIPDROP_API_KEY
-        private const val contentType = "multipart/form-data"
-        private lateinit var context: Context
-
-        // save the Ai generated image to the directory
-        fun saveImage(response: Response?): Boolean {
-            if (response == null) return false
-
-            val responseBody = response.body ?: return false
-            val imageBytes = responseBody?.bytes()
-            try {
-
-                if (imageBytes != null) {
-                    // Store the file in the internal storage
-                    val fileName = "generated_image.png"
-                    val file = File(context.filesDir, fileName) // Path
-                    val outputStream = FileOutputStream(file)
-                    outputStream.write(imageBytes)
-                    outputStream.close()
-                    return true
-                } else {
-                    return false
-                }
-            } catch (e: IOException) {
-                e.printStackTrace()
-                return false
-            }
-
-        }
 
         // Make a POST request to the endpoint to get an AI image
-        //
-        fun POST(file: File, name: String, style: String): Response? {
+        fun POST(file: File, name: String, style: String, completionHandler: (error: String?, data: Response?) -> Unit) {
             try {
                 Timber.i("Sending POST request for generating AI Image to: $endpoint")
 
                 val prompt = "$name, $style"
-                val fileBody = file.asRequestBody("image/*".toMediaTypeOrNull())
+                val fileBody = file.asRequestBody("image/*".toMediaType())
 
                 val requestBody = MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
                     .addFormDataPart("prompt", prompt)
-                    .addFormDataPart("sketch_file", "filename",fileBody)
+                    .addFormDataPart(
+                        "sketch_file",
+                        file.name,
+                        fileBody
+                    )
                     .build()
 
                 val client: OkHttpClient = OkHttpClient.Builder()
@@ -80,21 +55,48 @@ class ImageAPI {
                 val request = Request.Builder()
                     .url(endpoint)
                     .header("x-api-key", APIKey)
-                    .header("Content-Type", contentType)
+                    .header("Content-Type", "multipart/form-data")
                     .post(requestBody)
                     .build()
 
-                client.newCall(request).execute().use { response ->
-                    if (!response.isSuccessful) {
-                        saveImage(response) // The file should be saved in the internal storage I think
+                client.newCall(request).enqueue(object : okhttp3.Callback {
+                    override fun onFailure(call: okhttp3.Call, e: IOException) {
+                        Timber.e("onFailure: ${e.message}")
+                        e.printStackTrace()
+                        completionHandler.invoke(e.message ?: "Unknown error", null)
                     }
-                    throw IOException("Unexpected code $response")
-                    // Get response
-                    return response
-                }
+
+                    override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                        Timber.i("onResponse: $response")
+
+                        if (!response.isSuccessful) {
+                            val body = response.body?.string()
+                            completionHandler.invoke("Unsuccessful response: $body", null)
+                        } else {
+//                            val body = response.body?.string()
+//                            Timber.i("response: ${response.body?.string()}")
+
+                            completionHandler.invoke(null, response)
+                        }
+                    }
+                })
             } catch (e: Exception) {
                 e.printStackTrace()
-                return null
+                completionHandler.invoke(e.message ?: "Unknown error", null)
+            }
+        }
+
+        // save the Ai generated image to the directory
+        fun saveImage(path: String, imageBytes: ByteArray) {
+            try {
+                // Store the file in the internal storage
+                val fileName = "generated_image-${System.currentTimeMillis()}.jpg"
+                val file = File(path, fileName)
+                val outputStream = FileOutputStream(file)
+                outputStream.write(imageBytes)
+                outputStream.close()
+            } catch (e: IOException) {
+                e.printStackTrace()
             }
         }
     }

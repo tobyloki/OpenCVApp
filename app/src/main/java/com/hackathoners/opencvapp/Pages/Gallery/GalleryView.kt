@@ -1,5 +1,6 @@
 package com.hackathoners.opencvapp.Pages.Gallery
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -29,6 +30,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -53,16 +56,19 @@ class GalleryView : ComponentActivity() {
 
 @Composable
 fun GalleryViewComposable(
-    activity: ComponentActivity = ComponentActivity(),
+    previewMode: Boolean = LocalInspectionMode.current,
+    activity: Activity = (LocalContext.current as? Activity) ?: Activity(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     viewModel: GalleryViewModel = viewModel()
 ) {
-    PerformOnLifecycle(
-        lifecycleOwner = lifecycleOwner,
-        onCreate = viewModel::onCreate,
-        onResume = viewModel::onResume,
-        onPause = viewModel::onPause
-    )
+    if (!previewMode) {
+        PerformOnLifecycle(
+            lifecycleOwner = lifecycleOwner,
+            onCreate = viewModel::onCreate,
+            onResume = viewModel::onResume,
+            onPause = viewModel::onPause
+        )
+    }
 
     BaseView(
         title = "Gallery",

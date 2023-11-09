@@ -3,18 +3,27 @@ package com.hackathoners.opencvapp.Pages.Draw
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Matrix
+import android.graphics.Paint
+import android.graphics.RectF
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Environment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.google.common.math.Quantiles.scale
 import com.google.mediapipe.tasks.components.containers.Category
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResult
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
+import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.GestureRecognizerHelper
 import com.hackathoners.opencvapp.Shared.Utility.HTTP
+import com.hackathoners.opencvapp.Shared.Utility.ImageAPI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -31,10 +40,14 @@ import org.opencv.core.Mat
 import org.opencv.core.Point
 import org.opencv.core.Scalar
 import org.opencv.imgproc.Imgproc
+import org.opencv.imgproc.Imgproc.resize
 import timber.log.Timber
+import java.io.File
+import java.io.FileOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import kotlin.math.max
 
 // create enum called mode with values of camera or video
 enum class Mode {
@@ -44,14 +57,20 @@ enum class Mode {
 
 @OptIn(DelicateCoroutinesApi::class)
 class DrawViewModel : ViewModel() {
+    var rawSketchImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 //    var originalImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 //    var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var handsImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 //    var outputImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 
+    var prompt by mutableStateOf("Sketch")
+
     var showSaveAlert by mutableStateOf(false)
     var showSavingAlert by mutableStateOf(false)
+    var showErrorAlert by mutableStateOf(false)
     var showFinishedSavingAlert by mutableStateOf(false)
+
+    var saving by mutableStateOf(false)
 
     private val viewModelJob = Job()
     private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Default)
@@ -88,7 +107,7 @@ class DrawViewModel : ViewModel() {
 
     // region Initialize
     @SuppressLint("StaticFieldLeak")
-    private var activity: Activity? = null
+    private lateinit var activity: Activity
     fun initialize(activity: Activity) {
         this.activity = activity
 
@@ -98,15 +117,17 @@ class DrawViewModel : ViewModel() {
     // endregion
 
     // region Lifecycle
+    @SuppressLint("DiscouragedApi")
     fun onCreate() {
         Timber.i("onCreate")
 
 //        val intent = activity?.intent?.extras
 //        value = intent?.getString("value") ?: "no value"
 
-        val resId = activity?.resources?.getIdentifier("handw", "raw", activity?.packageName)
+        // load video
+        val resId = activity.resources?.getIdentifier("handw", "raw", activity?.packageName)
         Timber.i("resId: $resId")
-        val uri = Uri.parse("android.resource://${activity?.packageName}/$resId")
+        val uri = Uri.parse("android.resource://${activity.packageName}/$resId")
         Timber.i("uri: $uri")
         retriever = MediaMetadataRetriever()
         try {
@@ -127,7 +148,7 @@ class DrawViewModel : ViewModel() {
         // Create the GestureRecognizerHelper that will handle the inference
         backgroundExecutor.execute {
             gestureRecognizerHelper = GestureRecognizerHelper(
-                context = activity?.applicationContext!!,
+                context = activity.applicationContext!!,
                 runningMode = RunningMode.LIVE_STREAM,
                 currentDelegate = GestureRecognizerHelper.DELEGATE_CPU,
                 gestureRecognizerListener = object : GestureRecognizerHelper.GestureRecognizerListener {
@@ -172,7 +193,7 @@ class DrawViewModel : ViewModel() {
 
     // region Business logic
     private fun loadCalibrationValues() {
-        val sharedPref = activity?.getSharedPreferences("calibration", Activity.MODE_PRIVATE) ?: return
+        val sharedPref = activity.getSharedPreferences("calibration", Activity.MODE_PRIVATE) ?: return
         lowerSkinH = sharedPref.getFloat("lower-skin-h", 0f)
         lowerSkinS = sharedPref.getFloat("lower-skin-s", 50f)
         lowerSkinV = sharedPref.getFloat("lower-skin-v", 50f)
@@ -252,6 +273,11 @@ class DrawViewModel : ViewModel() {
 
     private var liftedFinger = true
     fun handleFrame(bitmap: Bitmap) {
+        // don't do anything if saving
+        if (saving) {
+            return
+        }
+
         if(this::gestureRecognizerHelper.isInitialized) {
             gestureRecognizerHelper.recognizeLiveStream(
                 bitmap = bitmap
@@ -510,7 +536,29 @@ class DrawViewModel : ViewModel() {
 //                Core.addWeighted(drawFrame, 1.0, sketch, 0.7, 0.0, drawFrame)
 //            }
             if (sketch2 != null) {
-                Core.addWeighted(handsFrame, 1.0, sketch2, 0.7, 0.0, handsFrame)
+                try {
+                    // add to handsFrame
+                    Core.addWeighted(handsFrame, 1.0, sketch2, 0.7, 0.0, handsFrame)
+
+                    // make copy of handsFrame, but set its alpha to 0.01 (needed otherwise image won't get correctly resized when saving)
+                    val sketchOnlyFrame = Mat()
+                    handsFrame.copyTo(sketchOnlyFrame)
+                    Core.addWeighted(sketchOnlyFrame, 0.01, sketch2, 0.7, 0.0, sketchOnlyFrame)
+
+                    // set dimensions to same as originalFrame
+                    val rawSketchBitmap: Bitmap =
+                        Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+                    Utils.matToBitmap(sketchOnlyFrame, rawSketchBitmap)
+
+                    rawSketchImage = rawSketchBitmap
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            } else {
+                // initialize rawSketchImage (if not already initialized)
+                if (rawSketchImage.width == 1) {
+                    rawSketchImage = Bitmap.createBitmap(originalFrame.width(), originalFrame.height(), Bitmap.Config.ARGB_8888)
+                }
             }
 
 //            val thresholdBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
@@ -521,11 +569,11 @@ class DrawViewModel : ViewModel() {
 //            Utils.matToBitmap(drawFrame, drawBitmap)
 
             // run on UI thread
-            activity?.runOnUiThread {
-//                originalImage = bitmap
-//                thresholdImage = thresholdBitmap
+            activity.runOnUiThread {
+                //                originalImage = bitmap
+                //                thresholdImage = thresholdBitmap
                 handsImage = handsBitmap
-//                outputImage = drawBitmap
+                //                outputImage = drawBitmap
             }
         }
     }
@@ -538,16 +586,84 @@ class DrawViewModel : ViewModel() {
     // region Menu actions
     fun saveImage() {
         showSaveAlert = true
+        saving = true
     }
 
     fun confirmSaveImage() {
         showSavingAlert = true
-        coroutineScope.launch {
-            // TODO: make request here instead of delay
-            delay(1000)
 
-            showSavingAlert = false
-            showFinishedSavingAlert = true
+        // get path to Pictures folder
+        val root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath
+        val path = "$root/OpenCVApp"
+        // make directory if not exists
+        val dir = File(path)
+        if (!dir.exists()) {
+            dir.mkdirs()
+        }
+        // create file
+        val file = File(path, "temp.jpg")
+
+        // resize handsImage to fit into 1024x1024 without losing aspect ratio
+        // makes image smaller to fit into the resize
+        // black bars will show up for images that are not square
+        fun resizeBitmapToSquare(bitmap: Bitmap, newSize: Int): Bitmap {
+            val width = bitmap.width
+            val height = bitmap.height
+
+            val scale = newSize.toFloat() / max(width, height)
+
+            val scaledWidth = scale * width
+            val scaledHeight = scale * height
+
+            val left = (newSize - scaledWidth) / 2
+            val top = (newSize - scaledHeight) / 2
+
+            val newBitmap = Bitmap.createBitmap(newSize, newSize, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(newBitmap)
+
+            val paint = Paint()
+            canvas.drawBitmap(bitmap, null, RectF(left, top, left + scaledWidth, top + scaledHeight), paint)
+
+            Timber.i("Original Dimensions: ${bitmap.width} x ${bitmap.height}")
+            Timber.i("Resized Dimensions: ${newBitmap.width} x ${newBitmap.height}")
+
+            return newBitmap
+        }
+
+        val resizedBitmap: Bitmap = resizeBitmapToSquare(rawSketchImage, 1024)
+
+        // write the bytes in file
+        val fos = FileOutputStream(file)
+        resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
+        fos.flush()
+        fos.close()
+
+        prompt = prompt.trim()
+        prompt = prompt.ifEmpty {
+            "Sketch"
+        }
+
+//        saving = false
+//        showSavingAlert = false
+
+        ImageAPI.POST(file, prompt, "cinematic") { error, response ->
+            activity.runOnUiThread {
+                saving = false
+                showSavingAlert = false
+
+                // delete temp file
+//                file.delete()
+
+                if (error != null) {
+                    Timber.e("error: $error")
+                    showErrorAlert = true
+                } else if (response != null) {
+                    response.body?.bytes()?.let {
+                        ImageAPI.saveImage(path, it)
+                    }
+                    showFinishedSavingAlert = true
+                }
+            }
         }
     }
 

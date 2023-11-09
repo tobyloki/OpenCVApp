@@ -2,22 +2,20 @@ package com.hackathoners.opencvapp.Pages.Home
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.MediaStore
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.hackathoners.opencvapp.Pages.Draw.AIImagePage.AIImageView
 import com.hackathoners.opencvapp.Pages.Draw.CalibrationPage.CalibrationPageView
 import com.hackathoners.opencvapp.Pages.Draw.DrawView
 import com.hackathoners.opencvapp.Pages.Gallery.GalleryView
 import com.hackathoners.opencvapp.R
-import com.hackathoners.opencvapp.Shared.Utility.ImageAPI
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -25,13 +23,8 @@ import org.opencv.android.Utils
 import org.opencv.core.Mat
 import org.opencv.imgproc.Imgproc
 import timber.log.Timber
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.FileOutputStream
-import android.content.Context
-import android.os.Environment
 
-class HomeViewModel : ViewModel() {
+class HomeViewModel() : ViewModel() {
     var count by mutableStateOf(0)
     var image by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 
@@ -40,8 +33,7 @@ class HomeViewModel : ViewModel() {
 
     // region Initialize
     @SuppressLint("StaticFieldLeak")
-    private var activity: Activity? = null
-    val context = activity?.applicationContext
+    private lateinit var activity: Activity
     fun initialize(activity: Activity) {
         this.activity = activity
         val bitmap = BitmapFactory.decodeResource(activity.resources, R.drawable.cat)
@@ -53,15 +45,8 @@ class HomeViewModel : ViewModel() {
     fun onCreate() {
         Timber.i("onCreate")
         // get from shared preferences
-        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
+        val sharedPref = activity.getPreferences(Activity.MODE_PRIVATE) ?: return
         count = sharedPref.getInt("count", 0)
-
-        val bitmap = BitmapFactory.decodeResource(activity?.resources, R.drawable.apple)
-        //TODO: How to handle context...
-        val file = File(context?.filesDir, "fds.png")
-        val fos = FileOutputStream(file)
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos)
-        ImageAPI.POST(file, "apple", "cinematic")
     }
 
     fun onResume() {
@@ -97,7 +82,7 @@ class HomeViewModel : ViewModel() {
         count++
 
         // save to shared preferences
-        val sharedPref = activity?.getPreferences(Activity.MODE_PRIVATE) ?: return
+        val sharedPref = activity.getPreferences(Activity.MODE_PRIVATE) ?: return
         with (sharedPref.edit()) {
             putInt("count", count)
             apply()
@@ -106,28 +91,17 @@ class HomeViewModel : ViewModel() {
 
     fun goToCalibrationPage() {
         val intent = Intent(activity, CalibrationPageView::class.java)
-        activity?.startActivity(intent)
+        activity.startActivity(intent)
     }
 
     fun goToDrawPage() {
         val intent = Intent(activity, DrawView::class.java)
-        activity?.startActivity(intent)
-    }
-
-    fun goToImagePage() {
-        val intent = Intent(activity, AIImageView::class.java)
-        activity?.startActivity(intent)
+        activity.startActivity(intent)
     }
 
     fun goToGalleryPage() {
         val intent = Intent(activity, GalleryView::class.java)
-        activity?.startActivity(intent)
+        activity.startActivity(intent)
     }
-
-//    fun selectImage() {
-//        val intent = Intent(Intent.ACTION_GET_CONTENT)
-//        intent.type = "image/*"
-//        activity.startActivityForResult(intent, 1)
-//    }
     // endregion
 }

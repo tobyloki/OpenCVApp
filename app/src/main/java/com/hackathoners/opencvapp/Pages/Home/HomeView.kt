@@ -1,5 +1,6 @@
 package com.hackathoners.opencvapp.Pages.Home
 
+import android.app.Activity
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -17,18 +18,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -52,16 +53,19 @@ class HomeView : ComponentActivity() {
 
 @Composable
 fun HomeViewComposable(
-    activity: ComponentActivity = ComponentActivity(),
+    previewMode: Boolean = LocalInspectionMode.current,
+    activity: Activity = (LocalContext.current as? Activity) ?: Activity(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     viewModel: HomeViewModel = viewModel()
 ) {
-    PerformOnLifecycle(
-        lifecycleOwner = lifecycleOwner,
-        onCreate = viewModel::onCreate,
-        onResume = viewModel::onResume,
-        onPause = viewModel::onPause
-    )
+    if (!previewMode) {
+        PerformOnLifecycle(
+            lifecycleOwner = lifecycleOwner,
+            onCreate = viewModel::onCreate,
+            onResume = viewModel::onResume,
+            onPause = viewModel::onPause
+        )
+    }
 
     // https://fvilarino.medium.com/using-activity-result-contracts-in-jetpack-compose-14b179fb87de
     val imagePicker = rememberLauncherForActivityResult(
@@ -112,22 +116,6 @@ fun HomeViewComposable(
                             contentDescription = null
                         )
                     }
-
-                )
-
-                DropdownMenuItem(
-                    onClick = {
-                        viewModel.goToImagePage()
-                        dismissMenu()
-                    },
-                    text = { Text(text = "Go to Image page") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.ArrowForward,
-                            contentDescription = null
-                        )
-                    }
-
                 )
             }
         }
@@ -145,17 +133,14 @@ fun HomeViewComposable(
                 Text(text = "Click me")
             }
             Button(
-                onClick = viewModel::goToDrawPage
-            ) {
-                Text(text = "Go to draw page")
-            }
-            Button (onClick = viewModel::goToImagePage) {
-                Text(text = "Go to Image page")
-            }
-            Button(
                 onClick = viewModel::goToCalibrationPage
             ) {
                 Text(text = "Go to Calibration page")
+            }
+            Button(
+                onClick = viewModel::goToDrawPage
+            ) {
+                Text(text = "Go to draw page")
             }
             Button(
                 onClick = viewModel::goToGalleryPage

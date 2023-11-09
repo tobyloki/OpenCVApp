@@ -2,6 +2,8 @@ package com.hackathoners.opencvapp.Pages.Draw.CalibrationPage
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
@@ -44,10 +46,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -78,7 +85,7 @@ class CalibrationPageView : ComponentActivity() {
         super.onCreate(savedInstanceState)
         viewModel.initialize(this)
         setContent {
-            CalibrationViewComposable(this)
+            CalibrationViewComposable()
         }
     }
 }
@@ -86,17 +93,19 @@ class CalibrationPageView : ComponentActivity() {
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CalibrationViewComposable(
-    activity: ComponentActivity = ComponentActivity(),
+    previewMode: Boolean = LocalInspectionMode.current,
+    activity: Activity = (LocalContext.current as? Activity) ?: Activity(),
     lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current,
     viewModel: CalibrationPageViewModel = viewModel()
 ) {
-
-    PerformOnLifecycle(
-        lifecycleOwner = lifecycleOwner,
-        onCreate = viewModel::onCreate,
-        onResume = viewModel::onResume,
-        onPause = viewModel::onPause
-    )
+    if (!previewMode) {
+        PerformOnLifecycle(
+            lifecycleOwner = lifecycleOwner,
+            onCreate = viewModel::onCreate,
+            onResume = viewModel::onResume,
+            onPause = viewModel::onPause
+        )
+    }
 
     BaseView(
         navigationIcon = {
@@ -112,13 +121,18 @@ fun CalibrationViewComposable(
             }
         }
     ) {
-        val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+        var permissionGranted by remember { mutableStateOf(false) }
+        if (!previewMode) {
+            val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+            permissionGranted = cameraPermissionState.status.isGranted
 
-        if (!cameraPermissionState.status.isGranted) {
-            NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
-        } else {
-            val cameraController: LifecycleCameraController =
-                remember { LifecycleCameraController(activity) }
+            if (!permissionGranted) {
+                NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
+            }
+        }
+
+        if (permissionGranted) {
+            val cameraController: LifecycleCameraController = remember { LifecycleCameraController(activity) }
 
             AndroidView(
                 modifier = Modifier
