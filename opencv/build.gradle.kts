@@ -88,76 +88,78 @@
 //   }
 //
 
-apply plugin: 'com.android.library'
-apply plugin: 'kotlin-android'
+plugins {
+    id("com.android.library")
+    id("kotlin-android")
+}
 
-def openCVersionName = "4.8.0"
-def openCVersionCode = ((4 * 100 + 8) * 100 + 0) * 10 + 0
+val openCVersionName = "4.8.0"
+val openCVersionCode = ((4 * 100 + 8) * 100 + 0) * 10 + 0
 
-println "OpenCV: " +openCVersionName + " " + project.buildscript.sourceFile
+println("OpenCV: $openCVersionName ${project.buildscript.sourceFile}")
 
 android {
-    namespace 'org.opencv'
-    compileSdkVersion 33
+    namespace = "org.opencv"
+    compileSdk = 33
 
     defaultConfig {
-        minSdkVersion 24
-        targetSdkVersion 33
-
+        minSdk = 24
+        targetSdk = 33
 
         externalNativeBuild {
             cmake {
-                arguments "-DANDROID_STL=c++_shared"
-                targets "opencv_jni_shared"
+                arguments("-DANDROID_STL=c++_shared")
+                targets("opencv_jni_shared")
             }
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = "1.8"
     }
 
     buildFeatures {
-        aidl true
-        buildConfig true
+        aidl = true
+        buildConfig = true
     }
 
     buildTypes {
-        debug {
+        getByName("debug") {
             packagingOptions {
-                doNotStrip '**/*.so'  // controlled by OpenCV CMake scripts
+                doNotStrip("**/*.so")  // controlled by OpenCV CMake scripts
             }
         }
-        release {
+        getByName("release") {
             packagingOptions {
-                doNotStrip '**/*.so'  // controlled by OpenCV CMake scripts
+                doNotStrip("**/*.so")  // controlled by OpenCV CMake scripts
             }
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+            isMinifyEnabled = false
+            proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.txt")
         }
     }
 
     sourceSets {
-        main {
-            jniLibs.srcDirs = ['native/libs']
-            java.srcDirs = ['java/src']
-            aidl.srcDirs = ['java/src']
-            res.srcDirs = ['java/res']
-            manifest.srcFile 'java/AndroidManifest.xml'
+        getByName("main") {
+            jniLibs.srcDirs("native/libs")
+            java.srcDirs("java/src")
+            aidl.srcDirs("java/src")
+            res.srcDirs("java/res")
+            manifest.srcFile("java/AndroidManifest.xml")
         }
     }
 
     externalNativeBuild {
         cmake {
-            path (project.projectDir.toString() + '/libcxx_helper/CMakeLists.txt')
+            path(project.projectDir.toString() + "/libcxx_helper/CMakeLists.txt")
         }
     }
 }
 
 dependencies {
+    // Add your dependencies here
 }
