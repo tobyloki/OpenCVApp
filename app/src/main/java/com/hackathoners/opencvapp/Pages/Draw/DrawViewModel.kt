@@ -11,6 +11,7 @@ import android.graphics.RectF
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Environment
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -24,6 +25,7 @@ import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.GestureRecognizerHelper
 import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import com.hackathoners.opencvapp.Shared.Utility.ImageAPI
+import com.hackathoners.opencvapp.Shared.Utility.ToastHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +38,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.opencv.android.Utils
 import org.opencv.core.Core
+import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.core.Point
 import org.opencv.core.Scalar
@@ -57,7 +60,7 @@ enum class Mode {
 
 @OptIn(DelicateCoroutinesApi::class)
 class DrawViewModel : ViewModel() {
-    var rawSketchImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+    var rawSketchImage by mutableStateOf<Bitmap?>(null)
 //    var originalImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
 //    var thresholdImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
     var handsImage by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
@@ -86,9 +89,9 @@ class DrawViewModel : ViewModel() {
     private var thresh = 0f
     private var maxval = 0f
 
-//    private var prevpos : Point? = null
-//    private var sketch : Mat? = null
+    // keeps track of previous point
     private var prevpos2 : Point? = null
+    // mat of all lines drawn
     private var sketch2 : Mat? = null
 
     /** Blocking ML operations are performed using this executor */
@@ -540,24 +543,20 @@ class DrawViewModel : ViewModel() {
                     // add to handsFrame
                     Core.addWeighted(handsFrame, 1.0, sketch2, 0.7, 0.0, handsFrame)
 
-                    // make copy of handsFrame, but set its alpha to 0.01 (needed otherwise image won't get correctly resized when saving)
+                    // make copy of handsFrame, but set the original handsFrame alpha to 0.01 (needed otherwise image won't get correctly resized when saving)
                     val sketchOnlyFrame = Mat()
                     handsFrame.copyTo(sketchOnlyFrame)
+
+                    // add sketch2 to sketchOnlyFrame w/alpha of 0.01
                     Core.addWeighted(sketchOnlyFrame, 0.01, sketch2, 0.7, 0.0, sketchOnlyFrame)
 
-                    // set dimensions to same as originalFrame
-                    val rawSketchBitmap: Bitmap =
-                        Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+                    // copy sketchOnlyFrame to rawSketchImage
+                    val rawSketchBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
                     Utils.matToBitmap(sketchOnlyFrame, rawSketchBitmap)
 
                     rawSketchImage = rawSketchBitmap
                 } catch (e: Exception) {
                     e.printStackTrace()
-                }
-            } else {
-                // initialize rawSketchImage (if not already initialized)
-                if (rawSketchImage.width == 1) {
-                    rawSketchImage = Bitmap.createBitmap(originalFrame.width(), originalFrame.height(), Bitmap.Config.ARGB_8888)
                 }
             }
 
@@ -579,14 +578,49 @@ class DrawViewModel : ViewModel() {
     }
 
     fun clearSketch() {
+        prevpos2 = null
         sketch2 = null
+        rawSketchImage = null
     }
     // endregion
 
     // region Menu actions
     fun saveImage() {
-        showSaveAlert = true
-        saving = true
+        // if rawSketchImage is not already initialized, show toast
+        if (rawSketchImage == null) {
+            ToastHelper.showToast(activity, "No sketch to save")
+        } else {
+            saving = true
+
+            // wait for 100ms to let handleFrame() finish up
+            GlobalScope.launch(Dispatchers.IO) {
+                delay(100)
+                activity.runOnUiThread {
+                    val bwSketchImage = Mat()
+                    Utils.bitmapToMat(rawSketchImage, bwSketchImage)
+
+                    // convert to grayscale
+                    Imgproc.cvtColor(bwSketchImage, bwSketchImage, Imgproc.COLOR_BGR2GRAY)
+
+                    // make anything b/t 10-255 white, and everything else black
+                    Imgproc.threshold(
+                        bwSketchImage,
+                        bwSketchImage,
+                        10.0,
+                        255.0,
+                        Imgproc.THRESH_BINARY
+                    )
+
+                    // flip colors
+                    Core.bitwise_not(bwSketchImage, bwSketchImage)
+
+                    // save back to rawSketchImage
+                    Utils.matToBitmap(bwSketchImage, rawSketchImage)
+
+                    showSaveAlert = true
+                }
+            }
+        }
     }
 
     fun confirmSaveImage() {
@@ -630,7 +664,7 @@ class DrawViewModel : ViewModel() {
             return newBitmap
         }
 
-        val resizedBitmap: Bitmap = resizeBitmapToSquare(rawSketchImage, 1024)
+        val resizedBitmap: Bitmap = resizeBitmapToSquare(rawSketchImage!!, 1024)
 
         // write the bytes in file
         val fos = FileOutputStream(file)

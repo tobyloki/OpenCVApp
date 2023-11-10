@@ -149,11 +149,13 @@ fun DrawViewComposable(
                             .background(color = Background),
                         contentAlignment = Alignment.Center
                     ) {
-                        Image(
-                            bitmap = viewModel.rawSketchImage.asImageBitmap(),
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        viewModel.rawSketchImage?.let {
+                            Image(
+                                bitmap = it.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
             },
