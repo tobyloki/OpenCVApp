@@ -2,33 +2,44 @@ package com.hackathoners.opencvapp.Pages.Gallery
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.net.Uri
-import android.provider.MediaStore
+import android.os.Environment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.hackathoners.opencvapp.Pages.Draw.CalibrationPage.CalibrationPageView
-import com.hackathoners.opencvapp.Pages.Draw.DrawView
-import com.hackathoners.opencvapp.R
+import com.hackathoners.opencvapp.Shared.Models.GalleryImage
+import com.hackathoners.opencvapp.Shared.Utility.ToastHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import org.opencv.android.Utils
-import org.opencv.core.Mat
-import org.opencv.imgproc.Imgproc
 import timber.log.Timber
+import java.io.File
+import java.util.Date
 
+
+@SuppressLint("MutableCollectionMutableState")
 class GalleryViewModel : ViewModel() {
     private val viewModelJob = Job()
     private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
 
+    var recentPictures: MutableList<GalleryImage> by mutableStateOf(mutableListOf())
+    var allPictures: MutableList<GalleryImage> by mutableStateOf(mutableListOf())
+
+    init {
+        // create items
+        val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+        for (i in 1..5) {
+            val galleryImage = GalleryImage(bitmap, File("file$i"))
+            recentPictures += galleryImage
+            allPictures += galleryImage
+        }
+    }
+
     // region Initialize
     @SuppressLint("StaticFieldLeak")
-    private var activity: Activity? = null
+    private lateinit var activity: Activity
     fun initialize(activity: Activity) {
         this.activity = activity
     }
@@ -41,6 +52,8 @@ class GalleryViewModel : ViewModel() {
 
     fun onResume() {
         Timber.i("onResume")
+
+        getPictures()
     }
 
     fun onPause() {
@@ -49,10 +62,48 @@ class GalleryViewModel : ViewModel() {
     // endregion
 
     // region Business logic
+    private fun getPictures() {
+        // get path to Pictures folder
+        val root = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES).absolutePath
+        val path = "$root/OpenCVApp"
+        // check if path exists
+        val dir = File(path)
+        if (!dir.exists()) {
+            return
+        }
 
+        // get all files in path
+        val files = dir.listFiles() ?: return
+        // get all files that are images
+        val imageFiles = files.filter { it.extension == "jpg" || it.extension == "jpeg" || it.extension == "png" }
+        // convert to bitmaps
+        val galleryImages: MutableList<GalleryImage> = mutableListOf()
+        for (imageFile in imageFiles) {
+            val filePath = imageFile.path;
+            val bitmap = BitmapFactory.decodeFile(filePath)
+            val galleryImage = GalleryImage(bitmap, imageFile)
+            galleryImages += galleryImage
+        }
+
+        // sort by date (newest first)
+        galleryImages.sortByDescending { it.file.lastModified() }
+
+        // update all pictures
+        allPictures = galleryImages
+
+        // get list of recent pictures (pictures taken in the last 24 hours)
+        val currentTime = Date().time
+        val recents: MutableList<GalleryImage> = galleryImages.filter { currentTime - it.file.lastModified() < 24 * 60 * 60 * 1000 }.toMutableList()
+
+        // update recent pictures
+        recentPictures = recents
+    }
     // endregion
 
     // region Button actions
-
+    fun goToIndividualPage(galleryImage: GalleryImage) {
+        // TODO: implement
+        ToastHelper.showToast(activity, "Go to individual page")
+    }
     // endregion
 }
