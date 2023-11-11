@@ -69,17 +69,21 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3:1.1.2")
+
     implementation(project(":opencv"))
-    implementation("com.google.mlkit:text-recognition-bundled-common:16.0.0")
+//    implementation("com.google.mlkit:text-recognition-bundled-common:16.0.0")
 
 //    testImplementation("junit:junit:4.13.2")
 //    androidTestImplementation("androidx.test.ext:junit:1.1.5")
 //    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-//    androidTestImplementation("androidx.compose:compose-bom:2023.03.00")
+
+    // need to add these to fix this issues in preview: "The following classes could not be found: - androidx.compose.ui.tooling.ComposeViewAdapter (Fix Build Path, Edit XML, Create Class)"
+    // https://stackoverflow.com/a/68224436/16762230
+    //noinspection BomWithoutPlatform
+    androidTestImplementation("androidx.compose:compose-bom:2023.10.01")
 //    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-//    androidTestImplementation("androidx.compose:compose-bom:2023.03.00")
-//    debugImplementation("androidx.compose.ui:ui-tooling")
-//    debugImplementation("androidx.compose.ui:ui-test-manifest")
+    debugImplementation("androidx.compose.ui:ui-tooling")
+    debugImplementation("androidx.compose.ui:ui-test-manifest")
 
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
