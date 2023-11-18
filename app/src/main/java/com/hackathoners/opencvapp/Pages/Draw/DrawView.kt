@@ -383,6 +383,16 @@ fun DrawViewComposable(
                         ) {
                             Text(text = "Clear Sketch")
                         }
+
+                        Button(
+                            onClick = viewModel::getSketchRNNPrediction,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Text(text = "Test")
+                        }
                     }
 
 //                        if (mode == Mode.VIDEO) {

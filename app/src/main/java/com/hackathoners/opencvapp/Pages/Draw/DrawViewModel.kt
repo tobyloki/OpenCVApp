@@ -91,6 +91,7 @@ class DrawViewModel : ViewModel() {
 
     // keeps track of previous point
     private var prevpos2 : Point? = null
+    private var allDrawnPoints = mutableListOf<Point>()
     // mat of all lines drawn
     private var sketch2 : Mat? = null
 
@@ -174,8 +175,6 @@ class DrawViewModel : ViewModel() {
                 gestureRecognizerHelper.setupGestureRecognizer()
             }
         }
-
-        getSketchRNNPrediction()
     }
 
     fun onPause() {
@@ -226,26 +225,45 @@ class DrawViewModel : ViewModel() {
         return bitmap
     }
 
-    private fun getSketchRNNPrediction() {
+    fun getSketchRNNPrediction() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
+                // convert allDrawnPoints to SketchRNNPoint
+                val points = mutableListOf<SketchRNNPoint>()
+                for (point in allDrawnPoints) {
+//                    Timber.i("point: $point")
+                    points.add(SketchRNNPoint(point.x, point.y, 1, 0, 0))
+                }
+                // convert to json array of json arrays
+                val jsonArray = JSONArray()
+                for (point in points) {
+                    val jsonPoint = JSONArray()
+                    jsonPoint.put(point.x)
+                    jsonPoint.put(point.y)
+                    jsonPoint.put(point.p1)
+                    jsonPoint.put(point.p2)
+                    jsonPoint.put(point.p3)
+
+                    jsonArray.put(jsonPoint)
+                }
+
                 // create json object with model string and strokes array of numbers
-                val input = JSONObject( mapOf(
+                val input: Map<String, Any> = mapOf(
                     "model" to "bird",
-//                    "strokes" to JSONArray(listOf(1, 2, 3, 4, 5))
-                ) )
-                val data = async { HTTP.POST("/simple_predict_absolute", input.toString()) }.await()
+                    "strokes" to jsonArray
+                )
+                val data = async { HTTP.POST("/simple_predict_absolute", input) }.await()
                 Timber.i("sketchRNN data: $data")
                 if(!data.isNullOrBlank()) {
                     val json = JSONArray(data)
                     // convert to list of points
-                    sketchRNNPoints = mutableListOf<SketchRNNPoint>()
+                    sketchRNNPoints = mutableListOf()
                     for (i in 0 until json.length()) {
                         val point = json.getJSONArray(i)
                         sketchRNNPoints.add(
                             SketchRNNPoint(
-                                point.getDouble(0) / 8,
-                                point.getDouble(1) / 8,
+                                point.getDouble(0),
+                                point.getDouble(1),
                                 point.getInt(2),
                                 point.getInt(3),
                                 point.getInt(4)
@@ -292,8 +310,7 @@ class DrawViewModel : ViewModel() {
             val originalFrame = Mat()
             Utils.bitmapToMat(bitmap, originalFrame)
 
-            // START
-
+            // region Unused
 //            // Apply skin color segmentation (you may need to adjust these values)
 //            val hsvFrame = Mat()
 //            Imgproc.cvtColor(originalFrame, hsvFrame, Imgproc.COLOR_BGR2HSV)
@@ -397,22 +414,7 @@ class DrawViewModel : ViewModel() {
 //                }
 //            }
 
-            // TODO: draw sketch rnn points on screen
-            for (point in sketchRNNPoints) {
-                try {
-                    Imgproc.circle(
-                        originalFrame,
-                        Point(point.x, point.y),
-                        1,
-                        Scalar(0.0, 0.0, 255.0),
-                        2
-                    )
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-
-            // END
+            // endregion Unused
 
             // hands start
 
@@ -480,6 +482,7 @@ class DrawViewModel : ViewModel() {
                                         2
                                     )
                                     prevpos2 = point
+                                    allDrawnPoints.add(point)
                                 } else {
                                     liftedFinger = true
                                 }
@@ -560,6 +563,25 @@ class DrawViewModel : ViewModel() {
                 }
             }
 
+            // draw sketch rnn points on screen
+            var lastPoint: SketchRNNPoint? = null
+            for (point in sketchRNNPoints) {
+                if (lastPoint == null) {
+                    lastPoint = point
+                    continue
+                }
+                lastPoint.let { lastPoint ->
+                    Imgproc.line(
+                        handsFrame,
+                        Point(lastPoint.x, lastPoint.y),
+                        Point(point.x, point.y),
+                        Scalar(0.0, 0.0, 255.0),
+                        2
+                    )
+                }
+                lastPoint = point
+            }
+
 //            val thresholdBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
 //            Utils.matToBitmap(thresholdFrame, thresholdBitmap)
             val handsBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
@@ -579,8 +601,10 @@ class DrawViewModel : ViewModel() {
 
     fun clearSketch() {
         prevpos2 = null
+        allDrawnPoints = mutableListOf()
         sketch2 = null
         rawSketchImage = null
+        sketchRNNPoints = mutableListOf()
     }
     // endregion
 
