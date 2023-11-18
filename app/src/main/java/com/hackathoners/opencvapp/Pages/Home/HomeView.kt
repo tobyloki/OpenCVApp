@@ -33,6 +33,11 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -52,6 +57,7 @@ import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
 import com.hackathoners.opencvapp.Shared.Views.BaseView
 import com.hackathoners.opencvapp.Shared.Views.OverflowMenu
+import kotlinx.coroutines.delay
 
 class HomeView : ComponentActivity() {
     private val viewModel by viewModels<HomeViewModel>()
@@ -90,6 +96,8 @@ fun HomeViewComposable(
         }
     )
 
+    var startBtnEnabled by remember { mutableStateOf(true) }
+    var galleryBtnEnabled by remember { mutableStateOf(true) }
     Column(
         verticalArrangement = Arrangement.spacedBy(80.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -112,9 +120,20 @@ fun HomeViewComposable(
                 horizontalArrangement = Arrangement.spacedBy(20.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                LaunchedEffect(galleryBtnEnabled, startBtnEnabled) {
+                    if (galleryBtnEnabled || startBtnEnabled) return@LaunchedEffect
+                    else delay(1000L)
+                    startBtnEnabled = true
+                    galleryBtnEnabled = true
+                }
+
                 Button(
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0, 178, 146)),
-                    onClick = viewModel::goToDrawPage,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0, 178, 146), disabledContainerColor = Color(0x80AEFFC5)),
+                    onClick = {
+                        startBtnEnabled = false
+                        galleryBtnEnabled = false
+                        viewModel.goToDrawPage() },
+                    enabled = startBtnEnabled,
                     modifier = Modifier
                         .shadow(
                             elevation = 20.dp,
@@ -135,8 +154,12 @@ fun HomeViewComposable(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Button(
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.White),
-                    onClick = viewModel::goToGalleryPage,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.White, disabledContainerColor = Color.Gray),
+                    onClick = {
+                        startBtnEnabled = false
+                        galleryBtnEnabled = false
+                        viewModel.goToGalleryPage() },
+                    enabled = galleryBtnEnabled,
                     modifier = Modifier
                         .shadow(elevation = 20.dp, spotColor = Color(0x80D3D3D3), ambientColor = Color(0x80D3D3D3))
                 ) {

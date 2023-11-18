@@ -1,7 +1,9 @@
 package com.hackathoners.opencvapp.Pages.Gallery
 
+import android.R
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Environment
@@ -9,12 +11,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.hackathoners.opencvapp.Pages.Individual.IndividualView
 import com.hackathoners.opencvapp.Shared.Models.GalleryImage
 import com.hackathoners.opencvapp.Shared.Utility.ToastHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import timber.log.Timber
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Date
 
@@ -101,8 +105,13 @@ class GalleryViewModel : ViewModel() {
     // endregion
 
     // region Button actions
-    fun goToIndividualPage(galleryImage: GalleryImage) {
-        // TODO: implement
+    fun goToIndividualPage(galleryImage: Bitmap) {
+        val stream = ByteArrayOutputStream()
+        galleryImage.compress(Bitmap.CompressFormat.PNG, 100, stream)
+        val byteArray = stream.toByteArray()
+        val intent = Intent(activity, IndividualView::class.java)
+        intent.putExtra("GALLERY_IMAGE", byteArray)
+        activity.startActivity(intent)
         ToastHelper.showToast(activity, "Go to individual page")
     }
     // endregion

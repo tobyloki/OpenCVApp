@@ -1,6 +1,8 @@
 package com.hackathoners.opencvapp.Pages.Individual
 
 import android.app.Activity
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -46,6 +48,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
+import com.hackathoners.opencvapp.Shared.Models.GalleryImage
 import com.hackathoners.opencvapp.Shared.Views.BaseView
 import timber.log.Timber
 
@@ -55,6 +58,12 @@ class IndividualView : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.initialize(this)
+        val extra = intent.getByteArrayExtra("GALLERY_IMAGE")
+        var receivedImage : Bitmap
+        if (extra != null) {
+            receivedImage = BitmapFactory.decodeByteArray(extra, 0, extra.size);
+            viewModel.setGalleryImage(receivedImage)
+        }
         setContent {
             IndividualViewComposable()
         }
@@ -104,7 +113,7 @@ fun IndividualViewComposable(
                     .width(335.dp)
                     .height(370.dp)
                     .shadow(elevation = 10.dp, spotColor = Color(0x40FFFFFF), ambientColor = Color(0x40FFFFFF)),
-                contentAlignment = Alignment.Center
+
             ) {
                 Image(
                     bitmap = viewModel.image.asImageBitmap(),

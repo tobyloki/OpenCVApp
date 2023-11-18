@@ -184,7 +184,7 @@ fun GalleryImageComposable(
 ) {
     Button(
         onClick = {
-            viewModel.goToIndividualPage(galleryImage)
+            viewModel.goToIndividualPage(galleryImage.bitmap)
         },
         // set contentPadding to 0.dp to remove the default padding
         contentPadding = PaddingValues(0.dp),

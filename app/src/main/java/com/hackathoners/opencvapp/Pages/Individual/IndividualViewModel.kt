@@ -3,9 +3,11 @@ package com.hackathoners.opencvapp.Pages.Individual
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
+import android.content.Intent.getIntent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Bundle
 import android.provider.MediaStore
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -19,7 +21,6 @@ import timber.log.Timber
 
 class IndividualViewModel : ViewModel() {
     var image by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
-
     private val viewModelJob = Job()
     private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
 
@@ -33,8 +34,6 @@ class IndividualViewModel : ViewModel() {
     // region Lifecycle
     fun onCreate() {
         Timber.i("onCreate")
-        // get from shared preferences
-        val sharedPref = activity.getPreferences(Activity.MODE_PRIVATE) ?: return
 
     }
 
@@ -46,6 +45,10 @@ class IndividualViewModel : ViewModel() {
         Timber.i("onPause")
     }
     // endregion
+
+    fun setGalleryImage(image: Bitmap) {
+        this.image = image
+    }
 
     fun goToGalleryPage() {
         val intent = Intent(activity, GalleryView::class.java)
