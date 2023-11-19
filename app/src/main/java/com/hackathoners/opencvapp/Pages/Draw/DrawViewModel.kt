@@ -615,8 +615,10 @@ class DrawViewModel : ViewModel() {
                                 2
                             )
                         }
+                        lastPoint = point
+                    } else {
+                        lastPoint = null
                     }
-                    lastPoint = point
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
