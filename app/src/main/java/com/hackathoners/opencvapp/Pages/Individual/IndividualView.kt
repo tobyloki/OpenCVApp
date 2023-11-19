@@ -7,10 +7,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +27,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -37,20 +34,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
-import com.hackathoners.opencvapp.Shared.Models.GalleryImage
 import com.hackathoners.opencvapp.Shared.Views.BaseView
 import timber.log.Timber
+import java.io.File
+
 
 class IndividualView : ComponentActivity() {
     private val viewModel by viewModels<IndividualViewModel>()
@@ -58,12 +53,12 @@ class IndividualView : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         viewModel.initialize(this)
-        val extra = intent.getByteArrayExtra("GALLERY_IMAGE")
-        var receivedImage : Bitmap
-        if (extra != null) {
-            receivedImage = BitmapFactory.decodeByteArray(extra, 0, extra.size);
-            viewModel.setGalleryImage(receivedImage)
+        val filePath = intent.getStringExtra("FILE_PATH")
+        if (filePath != null) {
+            Timber.i("FILE PATH IS VALID")
+            viewModel.setGalleryImage(BitmapFactory.decodeFile(filePath))
         }
+
         setContent {
             IndividualViewComposable()
         }
@@ -112,7 +107,11 @@ fun IndividualViewComposable(
                     .background(color = Color(0xFFFFFFFF), shape = RoundedCornerShape(size = 22.dp))
                     .width(335.dp)
                     .height(370.dp)
-                    .shadow(elevation = 10.dp, spotColor = Color(0x40FFFFFF), ambientColor = Color(0x40FFFFFF)),
+                    .shadow(
+                        elevation = 10.dp,
+                        spotColor = Color(0x40FFFFFF),
+                        ambientColor = Color(0x40FFFFFF)
+                    ),
 
             ) {
                 Image(

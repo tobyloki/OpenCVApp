@@ -18,9 +18,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import timber.log.Timber
+import java.io.File
 
 class IndividualViewModel : ViewModel() {
     var image by mutableStateOf<Bitmap>(Bitmap.createBitmap(1, 1, Bitmap.Config.ARGB_8888))
+    var file: File? = null
     private val viewModelJob = Job()
     private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
 
@@ -48,6 +50,10 @@ class IndividualViewModel : ViewModel() {
 
     fun setGalleryImage(image: Bitmap) {
         this.image = image
+    }
+
+    fun setGalleryFile(file: File) {
+        this.file = file
     }
 
     fun goToGalleryPage() {

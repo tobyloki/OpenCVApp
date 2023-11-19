@@ -35,7 +35,7 @@ class GalleryViewModel : ViewModel() {
         // create items
         val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
         for (i in 1..5) {
-            val galleryImage = GalleryImage(bitmap, File("file$i"))
+            val galleryImage = GalleryImage(bitmap, File("file$i"), "file$i")
             recentPictures += galleryImage
             allPictures += galleryImage
         }
@@ -85,7 +85,7 @@ class GalleryViewModel : ViewModel() {
         for (imageFile in imageFiles) {
             val filePath = imageFile.path;
             val bitmap = BitmapFactory.decodeFile(filePath)
-            val galleryImage = GalleryImage(bitmap, imageFile)
+            val galleryImage = GalleryImage(bitmap, imageFile, filePath)
             galleryImages += galleryImage
         }
 
@@ -105,14 +105,12 @@ class GalleryViewModel : ViewModel() {
     // endregion
 
     // region Button actions
-    fun goToIndividualPage(galleryImage: Bitmap) {
-        val stream = ByteArrayOutputStream()
-        galleryImage.compress(Bitmap.CompressFormat.PNG, 100, stream)
-        val byteArray = stream.toByteArray()
+    fun goToIndividualPage(galleryImage: GalleryImage) {
+        val filePath = galleryImage.filePath
         val intent = Intent(activity, IndividualView::class.java)
-        intent.putExtra("GALLERY_IMAGE", byteArray)
+        intent.putExtra("FILE_PATH", filePath)
         activity.startActivity(intent)
-        ToastHelper.showToast(activity, "Go to individual page")
+        ToastHelper.showToast(activity, "File Path was ${filePath}")
     }
     // endregion
 }
