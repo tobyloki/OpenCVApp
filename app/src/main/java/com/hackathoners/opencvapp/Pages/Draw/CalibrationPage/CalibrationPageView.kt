@@ -60,6 +60,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -68,6 +69,7 @@ import com.google.accompanist.permissions.PermissionState
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.hackathoners.opencvapp.Extensions.flipBitmap
+import com.hackathoners.opencvapp.Pages.Draw.Mode
 import com.hackathoners.opencvapp.Pages.Draw.NoCameraPermissionScreen.NoCameraPermissionScreen
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
 import com.hackathoners.opencvapp.Shared.Views.BaseView
@@ -122,14 +124,6 @@ fun CalibrationViewComposable(
         }
     ) {
         var permissionGranted by remember { mutableStateOf(false) }
-        if (!previewMode) {
-            val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-            permissionGranted = cameraPermissionState.status.isGranted
-
-            if (!permissionGranted) {
-                NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
-            }
-        }
 
         if (permissionGranted) {
             val cameraController: LifecycleCameraController = remember { LifecycleCameraController(activity) }
@@ -307,6 +301,17 @@ fun CalibrationViewComposable(
 
                     }
                 }
+            }
+        }
+
+        if (!previewMode) {
+            val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+            permissionGranted = cameraPermissionState.status.isGranted
+
+            if (!permissionGranted) {
+                NoCameraPermissionScreen(
+                    onRequestPermission = cameraPermissionState::launchPermissionRequest
+                )
             }
         }
     }

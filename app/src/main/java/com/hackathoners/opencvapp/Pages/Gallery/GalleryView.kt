@@ -90,8 +90,7 @@ fun GalleryViewComposable(
         navigationIcon = {
             run {
                 IconButton(onClick = {
-                    // TODO: make button button go back to home page regardless of origin
-                    Timber.i("Back button clicked")
+                    activity.finish()
                 }) {
                     Icon(
                         imageVector = Icons.Filled.ArrowBack,
