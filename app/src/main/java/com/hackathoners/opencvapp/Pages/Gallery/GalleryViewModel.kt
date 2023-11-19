@@ -110,7 +110,6 @@ class GalleryViewModel : ViewModel() {
         val intent = Intent(activity, IndividualView::class.java)
         intent.putExtra("FILE_PATH", filePath)
         activity.startActivity(intent)
-        ToastHelper.showToast(activity, "File Path was ${filePath}")
     }
     // endregion
 }

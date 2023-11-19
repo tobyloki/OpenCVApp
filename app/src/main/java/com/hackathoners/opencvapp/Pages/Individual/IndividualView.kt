@@ -1,8 +1,10 @@
 package com.hackathoners.opencvapp.Pages.Individual
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -39,6 +41,8 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.startActivity
+import androidx.core.content.FileProvider
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
@@ -57,6 +61,7 @@ class IndividualView : ComponentActivity() {
         if (filePath != null) {
             Timber.i("FILE PATH IS VALID")
             viewModel.setGalleryImage(BitmapFactory.decodeFile(filePath))
+            viewModel.setFilePath(filePath)
         }
 
         setContent {
@@ -128,7 +133,7 @@ fun IndividualViewComposable(
             ) {
                 Button(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(177, 6, 205)),
-                    onClick = viewModel::goToGalleryPage,
+                    onClick = { viewModel.shareImage(viewModel.filePath) },
                     modifier = Modifier
                         .shadow(
                             elevation = 20.dp,
@@ -145,7 +150,7 @@ fun IndividualViewComposable(
                 }
                 Button(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(255, 64, 64)),
-                    onClick = viewModel::goToGalleryPage,
+                    onClick = { viewModel.shareImage(viewModel.filePath) },
                     modifier = Modifier
                         .shadow(
                             elevation = 20.dp,
@@ -165,3 +170,4 @@ fun IndividualViewComposable(
 fun IndividualViewPreview() {
     IndividualViewComposable()
 }
+

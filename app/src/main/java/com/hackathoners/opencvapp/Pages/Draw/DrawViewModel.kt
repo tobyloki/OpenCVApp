@@ -2,6 +2,7 @@ package com.hackathoners.opencvapp.Pages.Draw
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -21,8 +22,10 @@ import com.google.mediapipe.tasks.components.containers.Category
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResult
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
+import com.hackathoners.opencvapp.Pages.Individual.IndividualView
 import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.GestureRecognizerHelper
+import com.hackathoners.opencvapp.Shared.Models.GalleryImage
 import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import com.hackathoners.opencvapp.Shared.Utility.ImageAPI
 import com.hackathoners.opencvapp.Shared.Utility.ToastHelper
@@ -74,6 +77,8 @@ class DrawViewModel : ViewModel() {
     var showFinishedSavingAlert by mutableStateOf(false)
 
     var saving by mutableStateOf(false)
+
+    private var filePath: String? = null
 
     private val viewModelJob = Job()
     private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Default)
@@ -717,7 +722,8 @@ class DrawViewModel : ViewModel() {
                     showErrorAlert = true
                 } else if (response != null) {
                     response.body?.bytes()?.let {
-                        ImageAPI.saveImage(path, it)
+                        var finalPath = ImageAPI.saveImage(path, it)
+                        this.filePath = finalPath
                     }
                     showFinishedSavingAlert = true
                 }
@@ -726,7 +732,11 @@ class DrawViewModel : ViewModel() {
     }
 
     fun goToIndividualGalleryPage() {
-        // TODO: implement
+        val filePath = this.filePath
+        val intent = Intent(activity, IndividualView::class.java)
+        Timber.i("FILE PATH IS ${this.filePath}")
+        intent.putExtra("FILE_PATH", filePath)
+        activity.startActivity(intent)
     }
     // endregion
 }

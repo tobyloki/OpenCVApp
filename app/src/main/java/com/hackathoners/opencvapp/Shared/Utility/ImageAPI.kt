@@ -87,7 +87,7 @@ class ImageAPI {
         }
 
         // save the Ai generated image to the directory
-        fun saveImage(path: String, imageBytes: ByteArray) {
+        fun saveImage(path: String, imageBytes: ByteArray): String? {
             try {
                 // Store the file in the internal storage
                 val fileName = "generated_image-${System.currentTimeMillis()}.jpg"
@@ -95,9 +95,12 @@ class ImageAPI {
                 val outputStream = FileOutputStream(file)
                 outputStream.write(imageBytes)
                 outputStream.close()
+                return file.path
             } catch (e: IOException) {
                 e.printStackTrace()
             }
+
+            return null
         }
     }
 }
