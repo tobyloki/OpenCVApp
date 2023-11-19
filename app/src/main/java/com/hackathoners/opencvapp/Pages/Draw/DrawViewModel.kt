@@ -245,19 +245,24 @@ class DrawViewModel : ViewModel() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 // convert allDrawnPoints to SketchRNNPoint
+                val uniqueAllDrawnPoints = allDrawnPoints.distinctBy { it.x to it.y }
                 val points = mutableListOf<SketchRNNPoint>()
-                for (point in allDrawnPoints) {
+                for (x in 0 until uniqueAllDrawnPoints.count()) {
+                    val point = allDrawnPoints[x]
 //                    Timber.i("point: $point")
-                    // check if last
-                    if (point != allDrawnPoints.last()) {
+                    val isLast = x == allDrawnPoints.count() - 1
+                    if (!isLast) {
                         points.add(SketchRNNPoint(point.x, point.y, 1, 0, 0))
                     } else {
                         points.add(SketchRNNPoint(point.x, point.y, 0, 1, 0))
                     }
                 }
+                // remove duplicate points based on x,y
+                val uniquePoints = points.distinctBy { it.x to it.y }
+
                 // convert to json array of json arrays
                 val jsonArray = JSONArray()
-                for (point in points) {
+                for (point in uniquePoints) {
                     val jsonPoint = JSONArray()
                     jsonPoint.put(point.x)
                     jsonPoint.put(point.y)
@@ -268,10 +273,12 @@ class DrawViewModel : ViewModel() {
                     jsonArray.put(jsonPoint)
                 }
 
+                Timber.i("sending ${jsonArray.length()} points to sketchRNN")
+
                 // create json object with model string and strokes array of numbers
                 val input: Map<String, Any> = mapOf(
                     "model" to "bird",
-                    "strokes" to jsonArray
+                    "strokes" to jsonArray.toString()
                 )
                 val data = async { HTTP.POST("/simple_predict_absolute", input) }.await()
                 Timber.i("sketchRNN data: $data")
@@ -585,22 +592,29 @@ class DrawViewModel : ViewModel() {
             }
 
             // draw sketch rnn points on screen
-            var lastPoint: SketchRNNPoint? = null
-            for (point in sketchRNNPoints) {
-                if (lastPoint == null) {
+            try {
+                var lastPoint: SketchRNNPoint? = null
+                for (point in sketchRNNPoints) {
+                    if (lastPoint == null) {
+                        lastPoint = point
+                        continue
+                    }
+                    // only draw if pen state is down
+                    if (point.p1 == 1) {
+                        lastPoint.let { lastPoint ->
+                            Imgproc.line(
+                                handsFrame,
+                                Point(lastPoint.x, lastPoint.y),
+                                Point(point.x, point.y),
+                                Scalar(0.0, 0.0, 255.0),
+                                2
+                            )
+                        }
+                    }
                     lastPoint = point
-                    continue
                 }
-                lastPoint.let { lastPoint ->
-                    Imgproc.line(
-                        handsFrame,
-                        Point(lastPoint.x, lastPoint.y),
-                        Point(point.x, point.y),
-                        Scalar(0.0, 0.0, 255.0),
-                        2
-                    )
-                }
-                lastPoint = point
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
 
 //            val thresholdBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)

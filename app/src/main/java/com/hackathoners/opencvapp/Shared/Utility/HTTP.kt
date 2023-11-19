@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit
 
 class HTTP {
     companion object {
-//        private const val endpoint = "https://119c-185-228-19-11.ngrok-free.app"
+//        private const val endpoint = "https://21b9-185-228-19-81.ngrok-free.app"
         private const val endpoint = "https://32b9-192-173-157-83.ngrok-free.app"
 
         fun POST(path: String, input: Map<String, Any>): String? {
