@@ -3,6 +3,7 @@ package com.hackathoners.opencvapp.Pages.Gallery
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -13,6 +14,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
+import com.hackathoners.opencvapp.Pages.Individual.IndividualView
 import com.hackathoners.opencvapp.Shared.Models.GalleryImage
 import com.hackathoners.opencvapp.Shared.Utility.ToastHelper
 import kotlinx.coroutines.CoroutineScope
@@ -35,7 +37,7 @@ class GalleryViewModel : ViewModel() {
         // create items
         val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
         for (i in 1..5) {
-            val galleryImage = GalleryImage(bitmap, File("file$i"))
+            val galleryImage = GalleryImage(bitmap, File("file$i"), "file$i")
             recentPictures += galleryImage
             allPictures += galleryImage
         }
@@ -94,7 +96,7 @@ class GalleryViewModel : ViewModel() {
         for (imageFile in imageFiles) {
             val filePath = imageFile.path;
             val bitmap = BitmapFactory.decodeFile(filePath)
-            val galleryImage = GalleryImage(bitmap, imageFile)
+            val galleryImage = GalleryImage(bitmap, imageFile, filePath)
             galleryImages += galleryImage
         }
 
