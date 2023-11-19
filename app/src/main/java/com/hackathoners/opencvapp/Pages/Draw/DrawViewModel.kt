@@ -1,7 +1,9 @@
 package com.hackathoners.opencvapp.Pages.Draw
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -15,6 +17,8 @@ import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import com.google.common.math.Quantiles.scale
 import com.google.mediapipe.tasks.components.containers.Category
@@ -47,6 +51,7 @@ import org.opencv.imgproc.Imgproc.resize
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -144,6 +149,17 @@ class DrawViewModel : ViewModel() {
     fun onResume() {
         Timber.i("onResume")
 
+        // request camera permission
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            // Permission is not granted
+            Timber.i("CAMERA permission not granted")
+            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.CAMERA), 0)
+        } else {
+            // Permission is already granted
+            // Do something
+            Timber.i("CAMERA permission already granted")
+        }
+
         loadCalibrationValues()
 
         // Initialize our background executor
@@ -232,7 +248,12 @@ class DrawViewModel : ViewModel() {
                 val points = mutableListOf<SketchRNNPoint>()
                 for (point in allDrawnPoints) {
 //                    Timber.i("point: $point")
-                    points.add(SketchRNNPoint(point.x, point.y, 1, 0, 0))
+                    // check if last
+                    if (point != allDrawnPoints.last()) {
+                        points.add(SketchRNNPoint(point.x, point.y, 1, 0, 0))
+                    } else {
+                        points.add(SketchRNNPoint(point.x, point.y, 0, 1, 0))
+                    }
                 }
                 // convert to json array of json arrays
                 val jsonArray = JSONArray()
@@ -610,6 +631,17 @@ class DrawViewModel : ViewModel() {
 
     // region Menu actions
     fun saveImage() {
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            // Permission is not granted
+            Timber.i("WRITE_EXTERNAL_STORAGE not granted")
+            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 0)
+            return
+        } else {
+            // Permission is already granted
+            // Do something
+            Timber.i("WRITE_EXTERNAL_STORAGE permission already granted")
+        }
+
         // if rawSketchImage is not already initialized, show toast
         if (rawSketchImage == null) {
             ToastHelper.showToast(activity, "No sketch to save")
@@ -659,7 +691,11 @@ class DrawViewModel : ViewModel() {
             dir.mkdirs()
         }
         // create file
-        val file = File(path, "temp.jpg")
+        // NOTE: for some reason, the temp.jpg gave errors
+        val randomFileName = "temp_sketch_${System.currentTimeMillis()}.jpg"
+        val file = File(path, randomFileName)
+        if (file.exists())
+            file.delete();
 
         // resize handsImage to fit into 1024x1024 without losing aspect ratio
         // makes image smaller to fit into the resize
@@ -691,7 +727,7 @@ class DrawViewModel : ViewModel() {
         val resizedBitmap: Bitmap = resizeBitmapToSquare(rawSketchImage!!, 1024)
 
         // write the bytes in file
-        val fos = FileOutputStream(file)
+        val fos = FileOutputStream(file.absoluteFile)
         resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos)
         fos.flush()
         fos.close()
@@ -710,7 +746,7 @@ class DrawViewModel : ViewModel() {
                 showSavingAlert = false
 
                 // delete temp file
-//                file.delete()
+                file.delete()
 
                 if (error != null) {
                     Timber.e("error: $error")

@@ -68,6 +68,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -287,18 +288,10 @@ fun DrawViewComposable(
             }
         }
     ) {
+//        var permissionGranted by remember { mutableStateOf(false) }
+
         if (mode == Mode.CAMERA) {
-            var permissionGranted by remember { mutableStateOf(false) }
-            if (!previewMode) {
-                val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
-                permissionGranted = cameraPermissionState.status.isGranted
-
-                if (!permissionGranted) {
-                    NoCameraPermissionScreen(cameraPermissionState::launchPermissionRequest)
-                }
-            }
-
-            if (permissionGranted) {
+//            if (permissionGranted) {
                 // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
                 // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
                 val cameraController: LifecycleCameraController =
@@ -332,7 +325,7 @@ fun DrawViewComposable(
                         }
                     }
                 )
-            }
+//            }
         }
 
         Box(
@@ -395,6 +388,7 @@ fun DrawViewComposable(
                         }
                     }
 
+                    // region Unused
 //                        if (mode == Mode.VIDEO) {
 //                            Box(
 //                                modifier = Modifier
@@ -531,9 +525,23 @@ fun DrawViewComposable(
 //                                modifier = Modifier.fillMaxSize()
 //                            )
 //                        }
+                    // endregion
                 }
             }
         }
+
+//        if (mode == Mode.CAMERA) {
+//            if (!previewMode) {
+//                val cameraPermissionState: PermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+//                permissionGranted = cameraPermissionState.status.isGranted
+//
+//                if (!permissionGranted) {
+//                    NoCameraPermissionScreen(
+//                        onRequestPermission = cameraPermissionState::launchPermissionRequest
+//                    )
+//                }
+//            }
+//        }
     }
 }
 

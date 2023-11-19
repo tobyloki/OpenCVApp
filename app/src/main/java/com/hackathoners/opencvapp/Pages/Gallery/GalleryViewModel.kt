@@ -1,24 +1,24 @@
 package com.hackathoners.opencvapp.Pages.Gallery
 
-import android.R
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Environment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
-import com.hackathoners.opencvapp.Pages.Individual.IndividualView
 import com.hackathoners.opencvapp.Shared.Models.GalleryImage
 import com.hackathoners.opencvapp.Shared.Utility.ToastHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import timber.log.Timber
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.util.Date
 
@@ -35,7 +35,7 @@ class GalleryViewModel : ViewModel() {
         // create items
         val bitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
         for (i in 1..5) {
-            val galleryImage = GalleryImage(bitmap, File("file$i"), "file$i")
+            val galleryImage = GalleryImage(bitmap, File("file$i"))
             recentPictures += galleryImage
             allPictures += galleryImage
         }
@@ -57,7 +57,16 @@ class GalleryViewModel : ViewModel() {
     fun onResume() {
         Timber.i("onResume")
 
-        getPictures()
+        if (ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            // Permission is not granted
+            Timber.i("READ_EXTERNAL_STORAGE not granted")
+            ActivityCompat.requestPermissions(activity, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 0)
+        } else {
+            // Permission is already granted
+            // Do something
+            Timber.i("READ_EXTERNAL_STORAGE permission already granted")
+            getPictures()
+        }
     }
 
     fun onPause() {
@@ -85,7 +94,7 @@ class GalleryViewModel : ViewModel() {
         for (imageFile in imageFiles) {
             val filePath = imageFile.path;
             val bitmap = BitmapFactory.decodeFile(filePath)
-            val galleryImage = GalleryImage(bitmap, imageFile, filePath)
+            val galleryImage = GalleryImage(bitmap, imageFile)
             galleryImages += galleryImage
         }
 
@@ -106,11 +115,8 @@ class GalleryViewModel : ViewModel() {
 
     // region Button actions
     fun goToIndividualPage(galleryImage: GalleryImage) {
-        val filePath = galleryImage.filePath
-        val intent = Intent(activity, IndividualView::class.java)
-        intent.putExtra("FILE_PATH", filePath)
-        activity.startActivity(intent)
-        ToastHelper.showToast(activity, "File Path was ${filePath}")
+        // TODO: implement
+        ToastHelper.showToast(activity, "Go to individual page")
     }
     // endregion
 }

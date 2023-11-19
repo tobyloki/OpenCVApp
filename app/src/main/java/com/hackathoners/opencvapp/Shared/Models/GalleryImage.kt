@@ -7,6 +7,5 @@ import java.util.Date
 
 class GalleryImage(
     val bitmap: Bitmap,
-    val file: File,
-    val filePath: String,
+    val file: File
 ) : Serializable
