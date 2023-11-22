@@ -32,6 +32,9 @@ class IndividualViewModel : ViewModel() {
     private val viewModelJob = Job()
     private var coroutineScope = CoroutineScope(viewModelJob + Dispatchers.Main)
 
+    var showDeleteAlert by mutableStateOf(false)
+    var showErrorDeletionAlert by mutableStateOf(false)
+
     // region Initialize
     @SuppressLint("StaticFieldLeak")
     private lateinit var activity: Activity
@@ -91,6 +94,7 @@ class IndividualViewModel : ViewModel() {
             activity.onBackPressed()
         } else {
             ToastHelper.showToast(activity, "Error: Cannot delete this image.")
+            this.showErrorDeletionAlert = true
         }
     }
 }

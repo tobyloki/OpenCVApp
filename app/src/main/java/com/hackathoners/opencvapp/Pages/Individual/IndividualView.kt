@@ -9,8 +9,10 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,12 +26,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +54,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
 import com.hackathoners.opencvapp.Shared.Views.BaseView
+import com.hackathoners.opencvapp.Shared.ui.theme.Background
 import timber.log.Timber
 import java.io.File
 
@@ -83,6 +91,92 @@ fun IndividualViewComposable(
             onCreate = viewModel::onCreate,
             onResume = viewModel::onResume,
             onPause = viewModel::onPause
+        )
+    }
+
+    if (viewModel.showDeleteAlert)
+    {
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icons.Filled.Delete
+            },
+            title = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(text = "Delete")
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                border = BorderStroke(
+                                    2.dp,
+                                    MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            .background(color = Background),
+                    )
+                }
+            },
+            text = { Text(text = "Are you sure to delete this image?") },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.showDeleteAlert = false
+                    }) {
+                    Text(text = "Cancel")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteImage(viewModel.filePath)
+                        viewModel.showDeleteAlert = false
+                    }) {
+                    Text(text = "Yes")
+                }
+            }
+        )
+    }
+
+    if (viewModel.showErrorDeletionAlert)
+    {
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icons.Filled.Delete
+            },
+            title = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(text = "Error")
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                border = BorderStroke(
+                                    2.dp,
+                                    MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            .background(color = Background),
+                    )
+                }
+            },
+            text = { Text(text = "Something went wrong.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.showDeleteAlert = false
+                        viewModel.showErrorDeletionAlert = false
+                    }) {
+                    Text(text = "Close")
+                }
+            }
         )
     }
 
@@ -150,7 +244,7 @@ fun IndividualViewComposable(
                 }
                 Button(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(255, 64, 64)),
-                    onClick = { viewModel.deleteImage(viewModel.filePath) },
+                    onClick = { viewModel.showDeleteAlert = true },
                     modifier = Modifier
                         .shadow(
                             elevation = 20.dp,
