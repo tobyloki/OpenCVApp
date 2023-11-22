@@ -85,6 +85,7 @@ import com.hackathoners.opencvapp.Extensions.flipBitmap
 import com.hackathoners.opencvapp.Pages.Draw.NoCameraPermissionScreen.NoCameraPermissionScreen
 import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
+import com.hackathoners.opencvapp.Shared.Models.Gesture
 import com.hackathoners.opencvapp.Shared.Views.BaseView
 import com.hackathoners.opencvapp.Shared.ui.theme.Background
 import com.hackathoners.opencvapp.Shared.ui.theme.LightBlue
@@ -212,7 +213,34 @@ fun DrawViewComposable(
             icon = {
                 Icons.Filled.Send
             },
-            title = { Text(text = "Generating...") },
+            title = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(text = "Generating...")
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                border = BorderStroke(
+                                    2.dp,
+                                    MaterialTheme.colorScheme.primary
+                                )
+                            )
+                            .background(color = Background),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        viewModel.rawSketchImage?.let {
+                            Image(
+                                bitmap = it.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            },
             text = { Text(text = "The artwork is being generated. Please wait a moment.") },
             confirmButton = {}
         )
@@ -259,6 +287,30 @@ fun DrawViewComposable(
         )
     }
 
+    if (viewModel.showGestureConfirmationAlert)
+    {
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icons.Filled.Send
+            },
+            title = {
+                Column {
+//                    Text(text = "Gesture: ${viewModel.currentGesture}")
+                    if (viewModel.currentGesture == Gesture.Thumb_Up) {
+                        Text("Save artwork")
+                    } else if (viewModel.currentGesture == Gesture.Closed_Fist) {
+                        Text("Autocomplete Sketch")
+                    } else if (viewModel.currentGesture == Gesture.Thumb_Down) {
+                        Text("Clear Sketch")
+                    }
+                }
+            },
+            text = { Text(text = "Hold for ${viewModel.gestureConfirmationCounter} more seconds to confirm.") },
+            confirmButton = {}
+        )
+    }
+
     BaseView(
         title = "Draw",
         navigationIcon = {
@@ -291,7 +343,7 @@ fun DrawViewComposable(
 //        var permissionGranted by remember { mutableStateOf(false) }
 
         if (mode == Mode.CAMERA) {
-//            if (permissionGranted) {
+            if (!previewMode) {
                 // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
                 // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
                 val cameraController: LifecycleCameraController =
@@ -325,7 +377,7 @@ fun DrawViewComposable(
                         }
                     }
                 )
-//            }
+            }
         }
 
         Box(
