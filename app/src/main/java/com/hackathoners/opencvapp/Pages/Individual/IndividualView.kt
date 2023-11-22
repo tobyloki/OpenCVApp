@@ -40,6 +40,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
@@ -203,14 +204,15 @@ fun IndividualViewComposable(
         ) {
             Box(
                 modifier = Modifier
-                    .background(color = Color(0xFFFFFFFF), shape = RoundedCornerShape(size = 22.dp))
-                    .width(335.dp)
+//                    .background(color = Color(0xFFFFFFFF), shape = RoundedCornerShape(size = 22.dp))
+                    .width(370.dp)
                     .height(370.dp)
                     .shadow(
                         elevation = 10.dp,
                         spotColor = Color(0x40FFFFFF),
                         ambientColor = Color(0x40FFFFFF)
-                    ),
+                    )
+                    .clip(RoundedCornerShape(size = 22.dp))
 
             ) {
                 Image(
@@ -218,7 +220,6 @@ fun IndividualViewComposable(
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(15.dp)
                 )
             }
             Row(
