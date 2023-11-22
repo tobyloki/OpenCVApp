@@ -855,6 +855,7 @@ class DrawViewModel : ViewModel() {
         Timber.i("FILE PATH IS ${this.filePath}")
         intent.putExtra("FILE_PATH", filePath)
         activity.startActivity(intent)
+        activity.finish()
     }
     // endregion
 }

@@ -185,7 +185,9 @@ fun IndividualViewComposable(
         title = "Gallery Piece",
         navigationIcon = {
             run {
-                IconButton(onClick = { activity.finish() }) {
+                IconButton(onClick = {
+                    activity.finish()
+                }) {
                     Icon(
                         imageVector = Icons.Filled.ArrowBack,
                         contentDescription = null
