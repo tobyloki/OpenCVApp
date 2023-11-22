@@ -65,11 +65,6 @@ class IndividualViewModel : ViewModel() {
         this.filePath = filePath
     }
 
-    fun goToGalleryPage() {
-        val intent = Intent(activity, GalleryView::class.java)
-        activity.startActivity(intent)
-    }
-
     fun shareImage(filePath: String?) {
         val file = File(filePath)
 

@@ -184,7 +184,7 @@ fun IndividualViewComposable(
         title = "Gallery Piece",
         navigationIcon = {
             run {
-                IconButton(onClick = viewModel::goToGalleryPage) {
+                IconButton(onClick = { activity.finish() }) {
                     Icon(
                         imageVector = Icons.Filled.ArrowBack,
                         contentDescription = null
