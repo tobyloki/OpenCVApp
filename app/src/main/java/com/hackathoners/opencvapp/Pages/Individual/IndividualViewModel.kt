@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -72,12 +73,24 @@ class IndividualViewModel : ViewModel() {
         if (file.exists()) {
             val intent = Intent(Intent.ACTION_SEND)
             intent.type = "image/*"
-            val fileUri = FileProvider.getUriForFile(activity, "", file)
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val fileUri: Uri? = FileProvider.getUriForFile(activity, "com.hackathoners.opencvapp.fileprovider", file)
             intent.putExtra(Intent.EXTRA_STREAM, fileUri)
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             activity.startActivity(Intent.createChooser(intent, "Share Image"))
         } else {
             ToastHelper.showToast(activity, "Error: Cannot share the image.")
+        }
+    }
+
+    fun deleteImage(filePath: String?) {
+        val file = File(filePath)
+
+        if (file.delete()) {
+            ToastHelper.showToast(activity, "Image is deleted successfully.")
+            activity.onBackPressed()
+        } else {
+            ToastHelper.showToast(activity, "Error: Cannot delete this image.")
         }
     }
 }

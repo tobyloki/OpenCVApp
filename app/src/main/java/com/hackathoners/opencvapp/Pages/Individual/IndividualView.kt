@@ -150,7 +150,7 @@ fun IndividualViewComposable(
                 }
                 Button(
                     colors = ButtonDefaults.buttonColors(containerColor = Color(255, 64, 64)),
-                    onClick = { viewModel.shareImage(viewModel.filePath) },
+                    onClick = { viewModel.deleteImage(viewModel.filePath) },
                     modifier = Modifier
                         .shadow(
                             elevation = 20.dp,
