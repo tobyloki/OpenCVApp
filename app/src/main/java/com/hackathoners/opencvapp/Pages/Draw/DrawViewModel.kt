@@ -842,7 +842,9 @@ class DrawViewModel : ViewModel() {
         val randomFileName = "temp_sketch_${System.currentTimeMillis()}.jpg"
         val file = File(path, randomFileName)
         if (file.exists())
-            file.delete();
+            if (!file.delete()) {
+                Timber.e("Failed to delete ${file.absolutePath}")
+            }
 
         // resize handsImage to fit into 1024x1024 without losing aspect ratio
         // makes image smaller to fit into the resize
@@ -897,14 +899,16 @@ class DrawViewModel : ViewModel() {
                 showSavingAlert = false
 
                 // delete temp file
-                file.delete()
+                if (!file.delete()) {
+                    Timber.e("Failed to delete ${file.absolutePath}")
+                }
 
                 if (error != null) {
                     Timber.e("error: $error")
                     showErrorAlert = true
                 } else if (response != null) {
                     response.body?.bytes()?.let {
-                        var finalPath = ImageAPI.saveImage(path, it)
+                        val finalPath = ImageAPI.saveImage(path, it)
                         this.filePath = finalPath
                     }
                     showFinishedSavingAlert = true
