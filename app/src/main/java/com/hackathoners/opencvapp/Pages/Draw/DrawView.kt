@@ -199,7 +199,7 @@ fun DrawViewComposable(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Text(text = "Generating...")
+                    Text(text = "Generating Art...")
 
                     Box(
                         modifier = Modifier
@@ -290,6 +290,21 @@ fun DrawViewComposable(
                 }
             },
             text = { Text(text = "Hold for ${viewModel.gestureConfirmationCounter} more seconds to confirm.") },
+            confirmButton = {}
+        )
+    }
+
+    if (viewModel.showAutocompletionGeneratingAlert)
+    {
+        AlertDialog(
+            onDismissRequest = {},
+            icon = {
+                Icons.Filled.Send
+            },
+            title = {
+                Text(text = "Generating Autocompleted Sketch...")
+            },
+            text = { Text(text = "Please wait.") },
             confirmButton = {}
         )
     }
@@ -399,77 +414,44 @@ fun DrawViewComposable(
                         .padding(top = 20.dp, bottom = 20.dp)
                 ) {
                     Row(
-                        modifier = Modifier.padding(start = 20.dp, end = 20.dp)
+                        modifier = Modifier.padding(start = 20.dp, end = 20.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
 
                         //TODO: Dropdown menu
                         // w/ all the different sketchRNN models
                         var srnnDdmExpanded by remember { mutableStateOf(false) }
-                        val srnnModels = listOf( // SketchRNN model names
-                            "truck", "angel", "windmill", "bicycle", "pig", "flamingo",
-                            "the_mona_lisa", "mosquito", "garden", "octopus", "cat", "face",
-                            "cruise_ship", "spider", "butterfly", "crab", "bird", "pineapple",
-                            "yoga", "lion", "castle", "swing_set", "sea_turtle", "catbus",
-                            "lighthouse", "power_outlet", "catpig", "hand", "radio", "chair",
-                            "rain", "ant", "bridge", "calendar", "basket", "parrot", "helicopter",
-                            "toothpaste", "postcard", "toothbrush", "trombone", "tiger",
-                            "speedboat", "bee", "passport", "firetruck", "paintbrush", "bus",
-                            "barn", "couch", "swan", "snail", "stove", "sheep", "scorpion",
-                            "owl", "cactus", "ambulance", "flower", "pool", "elephantpig",
-                            "snowflake", "diving_board", "floweryoga", "peas", "backpack",
-                            "duck", "antyoga", "strawberry", "palm_tree", "hedgehog", "skull",
-                            "beeflower", "monkey", "roller_coaster", "mermaid", "dolphin",
-                            "crabrabbitfacepig", "lantern", "key", "penguin", "dogbunny",
-                            "brain", "squirrel", "steak", "rabbitturtle", "yogabicycle",
-                            "map", "tractor", "radioface", "rabbit", "fire_hydrant", "frogsofa",
-                            "crabchair", "eye", "sandwich", "frog", "kangaroo", "hedgeberry",
-                            "alarm_clock", "bear", "bulldozer", "rifle", "lionsheep", "dog",
-                            "book", "whale", "lobster", "monapassport", "pigsheep", "rhinoceros",
-                            "elephant", "fan", "everything"
-                        )
-                        var srnnDdmSelectedIndex by remember { mutableIntStateOf(0) }
-                        Column {
 
-                            Box(
-                                modifier = Modifier
-                                    .background(color = Color.White)
-                                    .padding(10.dp)
+                        Box(
+                            modifier = Modifier
+                                .align(alignment = Alignment.CenterVertically)
+                                .background(color = Color.White)
+                                .padding(10.dp),
+                        ) {
+
+                            ClickableText(
+                                text = AnnotatedString("Model: ${viewModel.srnnModels[viewModel.srnnDdmSelectedIndex]}"),
+                                onClick = { srnnDdmExpanded = true },
+                                style = TextStyle(color = Color.Black)
+                            )
+
+                            DropdownMenu(
+                                expanded = srnnDdmExpanded,
+                                onDismissRequest = { srnnDdmExpanded = false }
                             ) {
-
-                                ClickableText(
-                                    text = AnnotatedString("Model: ${srnnModels[srnnDdmSelectedIndex]}"),
-                                    onClick = { srnnDdmExpanded = true },
-                                    style = TextStyle(color = Color.Black)
-                                )
-
-                                DropdownMenu(
-                                    expanded = srnnDdmExpanded,
-                                    onDismissRequest = { srnnDdmExpanded = false }
-                                ) {
-                                    srnnModels.forEachIndexed { index, model ->
-                                        DropdownMenuItem(
-                                            text = { Text(model) },
-                                            onClick = {
-                                                srnnDdmSelectedIndex = index
-                                                srnnDdmExpanded = false
-                                            }
-                                        )
-                                    }
+                                viewModel.srnnModels.forEachIndexed { index, model ->
+                                    DropdownMenuItem(
+                                        text = { Text(model) },
+                                        onClick = {
+                                            viewModel.srnnDdmSelectedIndex = index
+                                            srnnDdmExpanded = false
+                                        }
+                                    )
                                 }
                             }
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
-
-                        Button(
-                            onClick = viewModel::clearSketch,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Color.White,
-                                contentColor = Color.Black
-                            )
-                        ) {
-                            Text(text = "Clear Sketch")
-                        }
 
                         Button(
                             onClick = viewModel::getSketchRNNPrediction,
@@ -478,7 +460,17 @@ fun DrawViewComposable(
                                 contentColor = Color.Black
                             )
                         ) {
-                            Text(text = "Test")
+                            Text(text = "Auto")
+                        }
+
+                        Button(
+                            onClick = viewModel::clearSketch,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.Gray,
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text(text = "Clear")
                         }
                     }
 

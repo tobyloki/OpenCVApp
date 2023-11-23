@@ -1,5 +1,6 @@
 package com.hackathoners.opencvapp.Shared.Utility
 
+import com.hackathoners.opencvapp.BuildConfig
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -12,8 +13,7 @@ import java.util.concurrent.TimeUnit
 
 class HTTP {
     companion object {
-//        private const val endpoint = "https://21b9-185-228-19-81.ngrok-free.app"
-        private const val endpoint = "https://32b9-192-173-157-83.ngrok-free.app"
+        private const val endpoint = BuildConfig.SKETCHRNN_ENDPOINT
 
         fun POST(path: String, input: Map<String, Any>): String? {
             val data = JSONObject(input).toString()

@@ -140,13 +140,19 @@ fun HomeViewComposable(
                             spotColor = Color(0x80AEFFC5),
                             ambientColor = Color(0x80AEFFC5)
                         )
+                        .width(150.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.palette),
-                        contentDescription = "Cover image",
-                        contentScale = ContentScale.FillBounds
-                    )
-                    Text(text = "Start")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.palette),
+                            contentDescription = "Cover image",
+                            contentScale = ContentScale.FillBounds
+                        )
+                        Text(text = "Start")
+                    }
                 }
             }
             Row(
@@ -162,13 +168,19 @@ fun HomeViewComposable(
                     enabled = galleryBtnEnabled,
                     modifier = Modifier
                         .shadow(elevation = 20.dp, spotColor = Color(0x80D3D3D3), ambientColor = Color(0x80D3D3D3))
+                        .width(150.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.picture),
-                        contentDescription = "Cover image",
-                        contentScale = ContentScale.FillBounds
-                    )
-                    Text(text = "Gallery", color = Color.Black)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.picture),
+                            contentDescription = "Cover image",
+                            contentScale = ContentScale.FillBounds
+                        )
+                        Text(text = "Gallery", color = Color.Black)
+                    }
                 }
             }
         }

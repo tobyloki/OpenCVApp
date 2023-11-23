@@ -32,7 +32,7 @@ class ImageAPI {
             try {
                 Timber.i("Sending POST request for generating AI Image to: $endpoint")
 
-                val prompt = "$name, $style"
+                val prompt = "$name"
                 val fileBody = file.asRequestBody("image/*".toMediaType())
 
                 val requestBody = MultipartBody.Builder()

@@ -25,7 +25,6 @@ import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResu
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import com.hackathoners.opencvapp.Pages.Individual.IndividualView
 import com.hackathoners.opencvapp.Shared.Helpers.GestureRecognizerHelper
-import com.hackathoners.opencvapp.Shared.Models.GalleryImage
 import com.hackathoners.opencvapp.Shared.Models.Gesture
 import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import com.hackathoners.opencvapp.Shared.Utility.ImageAPI
@@ -48,7 +47,6 @@ import org.opencv.imgproc.Imgproc
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.util.Timer
 import java.util.TimerTask
 import java.util.concurrent.ExecutorService
@@ -72,10 +70,13 @@ class DrawViewModel : ViewModel() {
 
     var prompt by mutableStateOf("Sketch")
 
+    // alerts
     var showSaveAlert by mutableStateOf(false)
     var showSavingAlert by mutableStateOf(false)
     var showErrorAlert by mutableStateOf(false)
     var showFinishedSavingAlert by mutableStateOf(false)
+    var showGestureConfirmationAlert by mutableStateOf(false)
+    var showAutocompletionGeneratingAlert by mutableStateOf(false)
 
     var saving by mutableStateOf(false)
 
@@ -96,15 +97,20 @@ class DrawViewModel : ViewModel() {
     private var maxval = 0f
 
     // keeps track of previous point
-    private var prevpos2 : Point? = null
+    private var prevpos : Point? = null
     private var allDrawnPoints = mutableListOf<Point>()
     // mat of all lines drawn
-    private var sketch2 : Mat? = null
+    private var sketch : Mat? = null
 
     /** Blocking ML operations are performed using this executor */
     private lateinit var backgroundExecutor: ExecutorService
     private lateinit var gestureRecognizerHelper: GestureRecognizerHelper
     private var gestureRecognizerResultBundle: GestureRecognizerHelper.ResultBundle? = null
+
+    val srnnModels = listOf( // SketchRNN model names
+        "angel", "bicycle", "bird", "brain", "bridge", "cactus", "duck", "hedgehog", "lobster"
+    )
+    var srnnDdmSelectedIndex by mutableIntStateOf(0)
 
     class SketchRNNPoint(
         val x: Double,
@@ -115,9 +121,8 @@ class DrawViewModel : ViewModel() {
     )
     private var sketchRNNPoints = mutableListOf<SketchRNNPoint>()
 
-    var showGestureConfirmationAlert by mutableStateOf(false)
     var currentGesture by mutableStateOf(Gesture.None)
-    private val secondsToWait = 5
+    private val secondsToWait = 3
     var gestureConfirmationCounter by mutableIntStateOf(secondsToWait)
     // create timer
     private var gestureConfirmationTimer: Timer? = null
@@ -152,6 +157,9 @@ class DrawViewModel : ViewModel() {
         } catch (ex: RuntimeException) {
             ex.printStackTrace()
         }
+
+        // set random model selection
+        srnnDdmSelectedIndex = (0 until srnnModels.count()).random()
     }
 
     fun onResume() {
@@ -315,17 +323,28 @@ class DrawViewModel : ViewModel() {
 
                 Timber.i("sending ${jsonArray.length()} points to sketchRNN")
 
+                if (jsonArray.length() == 0) {
+                    activity.runOnUiThread {
+                        ToastHelper.showToast(activity, "No sketch to autocomplete")
+                    }
+                    return@launch
+                }
+
                 // create json object with model string and strokes array of numbers
                 val input: Map<String, Any> = mapOf(
-                    "model" to "bird",
+                    "model" to srnnModels[srnnDdmSelectedIndex],
                     "strokes" to jsonArray.toString()
                 )
 
-                //TODO: Set model based on DropDown in DrawView
-                //  Setup state variable to store current model
+                activity.runOnUiThread {
+                    showAutocompletionGeneratingAlert = true
+                }
 
                 val data = async { HTTP.POST("/simple_predict_absolute", input) }.await()
                 Timber.i("sketchRNN data: $data")
+                activity.runOnUiThread {
+                    showAutocompletionGeneratingAlert = false
+                }
                 if(!data.isNullOrBlank()) {
                     val json = JSONArray(data)
                     // convert to list of points
@@ -342,12 +361,20 @@ class DrawViewModel : ViewModel() {
                             )
                         )
                     }
+                } else {
+                    activity.runOnUiThread {
+                        showErrorAlert = true
+                    }
                 }
                 // print count of points and last point
                 Timber.i("points count: ${sketchRNNPoints.count()}")
                 Timber.i("last point: ${sketchRNNPoints.last().x}, ${sketchRNNPoints.last().y}")
             } catch (e: Exception) {
                 e.printStackTrace()
+
+                activity.runOnUiThread {
+                    showErrorAlert = true
+                }
             }
         }
     }
@@ -530,7 +557,7 @@ class DrawViewModel : ViewModel() {
                         gestureConfirmationCounter = secondsToWait
                         gestureConfirmationTimer?.cancel()
 
-                        if (gesture == Gesture.Closed_Fist || gesture == Gesture.Thumb_Down || gesture == Gesture.Thumb_Up || gesture == Gesture.Victory) {
+                        if (gesture == Gesture.Closed_Fist || gesture == Gesture.Thumb_Down || gesture == Gesture.Thumb_Up) {
                             showGestureConfirmationAlert = true
                             // start timer
                             gestureConfirmationTimer = createAndStartTimer()
@@ -556,25 +583,27 @@ class DrawViewModel : ViewModel() {
                                     val point = Point(x, y)
 
                                     // initialize sketch2 (if not already initialized)
-                                    if (sketch2 == null) {
-                                        sketch2 = Mat(originalFrame.size(), originalFrame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
+                                    if (sketch == null) {
+                                        sketch = Mat(originalFrame.size(), originalFrame.type(), Scalar(0.0, 0.0, 0.0, 0.0))
                                     }
 
-                                    if (prevpos2 == null || liftedFinger) {
-                                        prevpos2 = point
+                                    if (prevpos == null || liftedFinger) {
+                                        prevpos = point
                                     }
                                     liftedFinger = false
 
                                     // Draw line from previous point to current point
-                                    Imgproc.line(
-                                        sketch2,
-                                        prevpos2,
-                                        point,
-                                        Scalar(0.0, 255.0, 0.0),
-                                        2
-                                    )
-                                    prevpos2 = point
-                                    allDrawnPoints.add(point)
+                                    if (prevpos != point) {
+                                        Imgproc.line(
+                                            sketch,
+                                            prevpos,
+                                            point,
+                                            Scalar(0.0, 255.0, 0.0),
+                                            2
+                                        )
+                                        prevpos = point
+                                        allDrawnPoints.add(point)
+                                    }
                                 } else {
                                     liftedFinger = true
                                 }
@@ -633,17 +662,17 @@ class DrawViewModel : ViewModel() {
 //            if (sketch != null) {
 //                Core.addWeighted(drawFrame, 1.0, sketch, 0.7, 0.0, drawFrame)
 //            }
-            if (sketch2 != null) {
+            if (sketch != null) {
                 try {
                     // add to handsFrame
-                    Core.addWeighted(handsFrame, 1.0, sketch2, 0.7, 0.0, handsFrame)
+                    Core.addWeighted(handsFrame, 1.0, sketch, 0.7, 0.0, handsFrame)
 
                     // make copy of handsFrame, but set the original handsFrame alpha to 0.01 (needed otherwise image won't get correctly resized when saving)
                     val sketchOnlyFrame = Mat()
                     handsFrame.copyTo(sketchOnlyFrame)
 
                     // add sketch2 to sketchOnlyFrame w/alpha of 0.01
-                    Core.addWeighted(sketchOnlyFrame, 0.01, sketch2, 0.7, 0.0, sketchOnlyFrame)
+                    Core.addWeighted(sketchOnlyFrame, 0.01, sketch, 0.7, 0.0, sketchOnlyFrame)
 
                     // copy sketchOnlyFrame to rawSketchImage
                     val rawSketchBitmap: Bitmap = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
@@ -701,9 +730,9 @@ class DrawViewModel : ViewModel() {
     }
 
     fun clearSketch() {
-        prevpos2 = null
+        prevpos = null
         allDrawnPoints = mutableListOf()
-        sketch2 = null
+        sketch = null
         rawSketchImage = null
         sketchRNNPoints = mutableListOf()
     }
@@ -724,8 +753,8 @@ class DrawViewModel : ViewModel() {
             Timber.i("WRITE_EXTERNAL_STORAGE permission already granted")
         }
 
-        // if rawSketchImage is not already initialized, show toast
-        if (rawSketchImage == null) {
+        // if sketch is not already initialized, show toast
+        if (sketch == null) {
             ToastHelper.showToast(activity, "No sketch to save")
         } else {
             saving = true
@@ -734,10 +763,45 @@ class DrawViewModel : ViewModel() {
             GlobalScope.launch(Dispatchers.IO) {
                 delay(100)
                 activity.runOnUiThread {
-                    val bwSketchImage = Mat()
-                    Utils.bitmapToMat(rawSketchImage, bwSketchImage)
+                    // draw all sketchRNN points onto sketch
+                    try {
+                        var lastPoint: SketchRNNPoint? = null
+                        for (point in sketchRNNPoints) {
+                            if (lastPoint == null) {
+                                lastPoint = point
+                                continue
+                            }
+                            // only draw if pen state is down
+                            if (point.p1 == 1) {
+                                lastPoint.let { lastPoint ->
+                                    Imgproc.line(
+                                        sketch,
+                                        Point(lastPoint.x, lastPoint.y),
+                                        Point(point.x, point.y),
+                                        Scalar(0.0, 0.0, 255.0),
+                                        2
+                                    )
+                                }
+                                lastPoint = point
+                            } else {
+                                lastPoint = null
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+
+                    // make copy of handsFrame, but set the original handsFrame alpha to 0.01 (needed otherwise image won't get correctly resized when saving)
+                    val sketchOnlyFrame = Mat()
+                    Utils.bitmapToMat(rawSketchImage, sketchOnlyFrame)
+                    // add sketch to sketchOnlyFrame w/alpha of 0.01
+                    Core.addWeighted(sketchOnlyFrame, 0.01, sketch, 0.7, 0.0, sketchOnlyFrame)
+                    // copy sketchOnlyFrame to rawSketchImage
+                    Utils.matToBitmap(sketchOnlyFrame, rawSketchImage)
 
                     // convert to grayscale
+                    val bwSketchImage = Mat()
+                    Utils.bitmapToMat(rawSketchImage, bwSketchImage)
                     Imgproc.cvtColor(bwSketchImage, bwSketchImage, Imgproc.COLOR_BGR2GRAY)
 
                     // make anything b/t 10-255 white, and everything else black
@@ -815,10 +879,14 @@ class DrawViewModel : ViewModel() {
         fos.flush()
         fos.close()
 
+        prompt = "a " + srnnModels[srnnDdmSelectedIndex]
+
         prompt = prompt.trim()
         prompt = prompt.ifEmpty {
             "Sketch"
         }
+
+        Timber.i("prompt: $prompt")
 
 //        saving = false
 //        showSavingAlert = false

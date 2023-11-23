@@ -85,10 +85,10 @@ class IndividualViewModel : ViewModel() {
         val file = File(filePath)
 
         if (file.delete()) {
-            ToastHelper.showToast(activity, "Image is deleted successfully.")
+            ToastHelper.showToast(activity, "Image deleted successfully.")
             activity.onBackPressed()
         } else {
-            ToastHelper.showToast(activity, "Error: Cannot delete this image.")
+            ToastHelper.showToast(activity, "Error: Cannot delete image.")
             this.showErrorDeletionAlert = true
         }
     }
