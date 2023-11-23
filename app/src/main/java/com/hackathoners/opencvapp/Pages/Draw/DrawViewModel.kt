@@ -6,30 +6,24 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.RectF
 import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Environment
-import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
-import com.google.common.math.Quantiles.scale
 import com.google.mediapipe.tasks.components.containers.Category
 import com.google.mediapipe.tasks.vision.core.RunningMode
 import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResult
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import com.hackathoners.opencvapp.Pages.Individual.IndividualView
-import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.GestureRecognizerHelper
-import com.hackathoners.opencvapp.Shared.Models.GalleryImage
 import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import com.hackathoners.opencvapp.Shared.Utility.ImageAPI
 import com.hackathoners.opencvapp.Shared.Utility.ToastHelper
@@ -42,19 +36,15 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.json.JSONArray
-import org.json.JSONObject
 import org.opencv.android.Utils
 import org.opencv.core.Core
-import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.core.Point
 import org.opencv.core.Scalar
 import org.opencv.imgproc.Imgproc
-import org.opencv.imgproc.Imgproc.resize
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
-import java.io.IOException
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -285,6 +275,10 @@ class DrawViewModel : ViewModel() {
                     "model" to "bird",
                     "strokes" to jsonArray.toString()
                 )
+
+                //TODO: Set model based on DropDown in DrawView
+                //  Setup state variable to store current model
+
                 val data = async { HTTP.POST("/simple_predict_absolute", input) }.await()
                 Timber.i("sketchRNN data: $data")
                 if(!data.isNullOrBlank()) {

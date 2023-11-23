@@ -1,11 +1,8 @@
 package com.hackathoners.opencvapp.Pages.Draw
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.res.Resources
 import android.graphics.Bitmap
-import android.net.Uri
 import android.os.Bundle
 import android.view.ViewGroup
 import android.widget.LinearLayout
@@ -26,22 +23,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,9 +43,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -62,36 +56,22 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalLifecycleOwner
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.zIndex
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.MultiplePermissionsState
-import com.google.accompanist.permissions.PermissionState
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.rememberPermissionState
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.MediaItem
-import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.hackathoners.opencvapp.Extensions.flipBitmap
-import com.hackathoners.opencvapp.Pages.Draw.NoCameraPermissionScreen.NoCameraPermissionScreen
-import com.hackathoners.opencvapp.R
 import com.hackathoners.opencvapp.Shared.Helpers.PerformOnLifecycle
 import com.hackathoners.opencvapp.Shared.Views.BaseView
 import com.hackathoners.opencvapp.Shared.ui.theme.Background
-import com.hackathoners.opencvapp.Shared.ui.theme.LightBlue
 import com.hackathoners.opencvapp.Shared.ui.theme.LightGreen
-import com.hackathoners.opencvapp.Shared.ui.theme.Purple
 import com.hackathoners.opencvapp.rotateBitmap
-import timber.log.Timber
 
 
 class DrawView : ComponentActivity() {
@@ -179,7 +159,9 @@ fun DrawViewComposable(
                         Text(
                             text = "${viewModel.prompt.length} / $maxChar",
                             textAlign = TextAlign.End,
-                            modifier = Modifier.fillMaxWidth().padding(end = 16.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(end = 16.dp)
                         )
                     }
                 }
@@ -259,6 +241,10 @@ fun DrawViewComposable(
         )
     }
 
+    //TODO: Countdown Alert Dialog
+    // Use the same AlertDialog for each gesture
+    // Thumbs Up, Thumbs Down, Victory/Peace, Closed Fist
+
     BaseView(
         title = "Draw",
         navigationIcon = {
@@ -292,6 +278,7 @@ fun DrawViewComposable(
 
         if (mode == Mode.CAMERA) {
 //            if (permissionGranted) {
+            if (!previewMode) {
                 // https://www.youtube.com/watch?v=pPVZambOuG8&t=625s
                 // https://github.com/YanneckReiss/JetpackComposeCameraXShowcase/blob/master/app/src/main/kotlin/de/yanneckreiss/cameraxtutorial/ui/features/camera/photo_capture/CameraScreen.kt
                 val cameraController: LifecycleCameraController =
@@ -325,7 +312,7 @@ fun DrawViewComposable(
                         }
                     }
                 )
-//            }
+            }
         }
 
         Box(
@@ -365,6 +352,64 @@ fun DrawViewComposable(
                     Row(
                         modifier = Modifier.padding(start = 20.dp, end = 20.dp)
                     ) {
+
+                        //TODO: Dropdown menu
+                        // w/ all the different sketchRNN models
+                        var srnnDdmExpanded by remember { mutableStateOf(false) }
+                        val srnnModels = listOf( // SketchRNN model names
+                            "truck", "angel", "windmill", "bicycle", "pig", "flamingo",
+                            "the_mona_lisa", "mosquito", "garden", "octopus", "cat", "face",
+                            "cruise_ship", "spider", "butterfly", "crab", "bird", "pineapple",
+                            "yoga", "lion", "castle", "swing_set", "sea_turtle", "catbus",
+                            "lighthouse", "power_outlet", "catpig", "hand", "radio", "chair",
+                            "rain", "ant", "bridge", "calendar", "basket", "parrot", "helicopter",
+                            "toothpaste", "postcard", "toothbrush", "trombone", "tiger",
+                            "speedboat", "bee", "passport", "firetruck", "paintbrush", "bus",
+                            "barn", "couch", "swan", "snail", "stove", "sheep", "scorpion",
+                            "owl", "cactus", "ambulance", "flower", "pool", "elephantpig",
+                            "snowflake", "diving_board", "floweryoga", "peas", "backpack",
+                            "duck", "antyoga", "strawberry", "palm_tree", "hedgehog", "skull",
+                            "beeflower", "monkey", "roller_coaster", "mermaid", "dolphin",
+                            "crabrabbitfacepig", "lantern", "key", "penguin", "dogbunny",
+                            "brain", "squirrel", "steak", "rabbitturtle", "yogabicycle",
+                            "map", "tractor", "radioface", "rabbit", "fire_hydrant", "frogsofa",
+                            "crabchair", "eye", "sandwich", "frog", "kangaroo", "hedgeberry",
+                            "alarm_clock", "bear", "bulldozer", "rifle", "lionsheep", "dog",
+                            "book", "whale", "lobster", "monapassport", "pigsheep", "rhinoceros",
+                            "elephant", "fan", "everything"
+                        )
+                        var srnnDdmSelectedIndex by remember { mutableIntStateOf(0) }
+                        Column {
+
+                            Box(
+                                modifier = Modifier
+                                    .background(color = Color.White)
+                                    .padding(10.dp)
+                            ) {
+
+                                ClickableText(
+                                    text = AnnotatedString("Model: ${srnnModels[srnnDdmSelectedIndex]}"),
+                                    onClick = { srnnDdmExpanded = true },
+                                    style = TextStyle(color = Color.Black)
+                                )
+
+                                DropdownMenu(
+                                    expanded = srnnDdmExpanded,
+                                    onDismissRequest = { srnnDdmExpanded = false }
+                                ) {
+                                    srnnModels.forEachIndexed { index, model ->
+                                        DropdownMenuItem(
+                                            text = { Text(model) },
+                                            onClick = {
+                                                srnnDdmSelectedIndex = index
+                                                srnnDdmExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
                         Spacer(modifier = Modifier.weight(1f))
 
                         Button(
