@@ -13,6 +13,7 @@ import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.os.Environment
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
@@ -24,6 +25,8 @@ import com.google.mediapipe.tasks.vision.gesturerecognizer.GestureRecognizerResu
 import com.google.mediapipe.tasks.vision.handlandmarker.HandLandmarker
 import com.hackathoners.opencvapp.Pages.Individual.IndividualView
 import com.hackathoners.opencvapp.Shared.Helpers.GestureRecognizerHelper
+import com.hackathoners.opencvapp.Shared.Models.GalleryImage
+import com.hackathoners.opencvapp.Shared.Models.Gesture
 import com.hackathoners.opencvapp.Shared.Utility.HTTP
 import com.hackathoners.opencvapp.Shared.Utility.ImageAPI
 import com.hackathoners.opencvapp.Shared.Utility.ToastHelper
@@ -45,6 +48,9 @@ import org.opencv.imgproc.Imgproc
 import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.util.Timer
+import java.util.TimerTask
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -108,6 +114,13 @@ class DrawViewModel : ViewModel() {
         val p3: Int
     )
     private var sketchRNNPoints = mutableListOf<SketchRNNPoint>()
+
+    var showGestureConfirmationAlert by mutableStateOf(false)
+    var currentGesture by mutableStateOf(Gesture.None)
+    private val secondsToWait = 5
+    var gestureConfirmationCounter by mutableIntStateOf(secondsToWait)
+    // create timer
+    private var gestureConfirmationTimer: Timer? = null
 
     // region Initialize
     @SuppressLint("StaticFieldLeak")
@@ -205,6 +218,38 @@ class DrawViewModel : ViewModel() {
     // endregion
 
     // region Business logic
+    private fun createAndStartTimer(): Timer {
+        val timer = Timer()
+
+        timer.scheduleAtFixedRate(object : TimerTask() {
+            override fun run() {
+                // Your task to be executed every 1 second goes here
+                gestureConfirmationCounter--
+                Timber.i("gestureConfirmationCounter: $gestureConfirmationCounter")
+
+                if (gestureConfirmationCounter == 0) {
+                    gestureConfirmationTimer?.cancel()
+
+                    Timber.i("Gesture confirmed: $currentGesture")
+
+                    activity.runOnUiThread {
+                        showGestureConfirmationAlert = false
+
+                        if (currentGesture == Gesture.Thumb_Up) {
+                            saveImage()
+                        } else if (currentGesture == Gesture.Closed_Fist) {
+                            getSketchRNNPrediction()
+                        } else if (currentGesture == Gesture.Thumb_Down) {
+                            clearSketch()
+                        }
+                    }
+                }
+            }
+        }, 0, 1000) // 0 milliseconds delay, 1000 milliseconds (1 second) interval
+
+        return timer
+    }
+
     private fun loadCalibrationValues() {
         val sharedPref = activity.getSharedPreferences("calibration", Activity.MODE_PRIVATE) ?: return
         lowerSkinH = sharedPref.getFloat("lower-skin-h", 0f)
@@ -463,15 +508,35 @@ class DrawViewModel : ViewModel() {
                     val firstCategory = sortedCategories.first()
                     category = firstCategory
 
-                    Imgproc.putText(
-                        handsFrame,
-                        "${firstCategory.categoryName()} - ${String.format("%.2f", firstCategory.score())}",
-                        Point(10.0, 50.0),
-                        0,
-                        1.0,
-                        Scalar(255.0, 0.0, 0.0),
-                        2
-                    )
+//                    Imgproc.putText(
+//                        handsFrame,
+//                        "${firstCategory.categoryName()} - ${String.format("%.2f", firstCategory.score())}",
+//                        Point(10.0, 50.0),
+//                        0,
+//                        1.0,
+//                        Scalar(255.0, 0.0, 0.0),
+//                        2
+//                    )
+                }
+
+                var gesture: Gesture = Gesture.None
+                if (category != null && category.score() > 0.5) {
+                    gesture = Gesture.valueOf(category.categoryName())
+                }
+
+                activity.runOnUiThread {
+                    if (gesture != currentGesture) {
+                        showGestureConfirmationAlert = false
+                        gestureConfirmationCounter = secondsToWait
+                        gestureConfirmationTimer?.cancel()
+
+                        if (gesture == Gesture.Closed_Fist || gesture == Gesture.Thumb_Down || gesture == Gesture.Thumb_Up || gesture == Gesture.Victory) {
+                            showGestureConfirmationAlert = true
+                            // start timer
+                            gestureConfirmationTimer = createAndStartTimer()
+                        }
+                    }
+                    currentGesture = gesture
                 }
 
                 gestureRecognizerResults.let { gestureRecognizerResult ->
@@ -485,7 +550,7 @@ class DrawViewModel : ViewModel() {
                             val isIndexFinger = i == 8
 
                             if (isIndexFinger) {
-                                if (category != null && category.categoryName() == "Pointing_Up" && category.score() > 0.5) {
+                                if (category != null && gesture == Gesture.Pointing_Up) {
                                     val x = normalizedLandmark.x() * imageWidth * scaleFactor
                                     val y = normalizedLandmark.y() * imageHeight * scaleFactor
                                     val point = Point(x, y)
@@ -646,6 +711,8 @@ class DrawViewModel : ViewModel() {
 
     // region Menu actions
     fun saveImage() {
+        Timber.i("Saving image")
+
         if (ContextCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             // Permission is not granted
             Timber.i("WRITE_EXTERNAL_STORAGE not granted")
@@ -688,7 +755,8 @@ class DrawViewModel : ViewModel() {
                     // save back to rawSketchImage
                     Utils.matToBitmap(bwSketchImage, rawSketchImage)
 
-                    showSaveAlert = true
+//                    showSaveAlert = true
+                    confirmSaveImage()
                 }
             }
         }
@@ -783,6 +851,7 @@ class DrawViewModel : ViewModel() {
         Timber.i("FILE PATH IS ${this.filePath}")
         intent.putExtra("FILE_PATH", filePath)
         activity.startActivity(intent)
+        activity.finish()
     }
     // endregion
 }
