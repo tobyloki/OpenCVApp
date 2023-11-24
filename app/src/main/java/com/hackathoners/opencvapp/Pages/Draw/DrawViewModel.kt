@@ -893,7 +893,7 @@ class DrawViewModel : ViewModel() {
 //        saving = false
 //        showSavingAlert = false
 
-        ImageAPI.POST(file, prompt, "cinematic") { error, response ->
+        ImageAPI.POST(file, prompt) { error, response ->
             activity.runOnUiThread {
                 saving = false
                 showSavingAlert = false

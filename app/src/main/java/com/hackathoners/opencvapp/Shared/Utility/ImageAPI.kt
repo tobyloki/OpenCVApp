@@ -28,11 +28,11 @@ class ImageAPI {
         private const val APIKey = BuildConfig.CLIPDROP_API_KEY
 
         // Make a POST request to the endpoint to get an AI image
-        fun POST(file: File, name: String, style: String, completionHandler: (error: String?, data: Response?) -> Unit) {
+        fun POST(file: File, name: String, completionHandler: (error: String?, data: Response?) -> Unit) {
             try {
                 Timber.i("Sending POST request for generating AI Image to: $endpoint")
 
-                val prompt = "$name"
+                val prompt = "$name, 2D paper sketch with no color and little detail and no watermark/signature"
                 val fileBody = file.asRequestBody("image/*".toMediaType())
 
                 val requestBody = MultipartBody.Builder()
