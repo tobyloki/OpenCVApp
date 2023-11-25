@@ -4,7 +4,7 @@ An Android app that autocompletes your hand drawn sketches & generates a cinemat
 
 ## Setup
 
-1. Get ClipDrop API key from https://clipdrop.co/apis
+1. Get ClipDrop API key from https://clipdrop.co/apis/account
 2. Follow instructions at https://github.com/tobyloki/SketchRNNHttpServer to start the SketchRNN server locally & get an endpoint
 
 Set variables in `local.properties`
